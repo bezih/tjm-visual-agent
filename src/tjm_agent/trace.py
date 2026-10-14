@@ -34,14 +34,16 @@ def annotate(screenshot: Image.Image, outcome: Outcome, click_pt=None, title: st
         if ev["event"] == "candidates":
             for rank, (box, score) in enumerate(ev["patches"], 1):
                 d.rectangle(box, outline=(255, 235, 59, 255), width=5)
-                d.text((box[0] + 10, box[1] + 8), f"candidate #{rank}  score {score}",
+                d.text((box[0] + 10, max(box[1] + 8, 70)), f"candidate #{rank}  score {score}",
                        fill=(255, 235, 59), font=small, stroke_width=3, stroke_fill="black")
         elif ev["event"] == "ground_reference" and ev.get("point_px"):
             x, y = ev["point_px"]
             c = COLORS.get(ev["kind"], (255, 255, 255))
             d.ellipse([x - 12, y - 12, x + 12, y + 12], fill=c + (230,), outline="black", width=3)
-            d.text((x + 18, y - 14), f"{ev['kind']}: {ev['text'][:40]}", fill=c, font=small,
-                   stroke_width=3, stroke_fill="black")
+            label = f"{ev['kind']}: {ev['text'][:40]}"
+            right_edge = x > img.width - 700
+            d.text((x - 18 if right_edge else x + 18, y), label, fill=c, font=small,
+                   anchor="rm" if right_edge else "lm", stroke_width=3, stroke_fill="black")
         elif ev["event"] == "ground_target" and ev.get("viewport"):
             d.rectangle(ev["viewport"], outline=(33, 150, 243, 255), width=6)
 
@@ -54,7 +56,7 @@ def annotate(screenshot: Image.Image, outcome: Outcome, click_pt=None, title: st
         if click_pt:
             label += f"  click pt=({click_pt[0]:.0f},{click_pt[1]:.0f})"
         tx = min(max(20, x - 300), img.width - 900)
-        ty = y + 100 if y < img.height - 200 else y - 150
+        ty = y + 100 if y < img.height - 320 else y - 170
         d.text((tx, ty), label, fill=(244, 67, 54), font=big, stroke_width=4, stroke_fill="white")
 
     header = (f"{title}  |  target: \"{outcome.instruction}\"  |  {outcome.status}  |  "

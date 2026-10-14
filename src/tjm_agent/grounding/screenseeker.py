@@ -123,7 +123,10 @@ class ScreenSeekeR:
             return None
 
         voters: list[Box] = []
-        for ref in inference.references[: self.cfg.max_refs]:
+        # Planner order is "descending probability"; within the reference cap we ground the
+        # target mentions (<element>) first so a second proposed region is not cut off.
+        refs = sorted(inference.references, key=lambda r: r.kind != "element")
+        for ref in refs[: self.cfg.max_refs]:
             self._spend("grounder")
             gp = self.grounder.ground(crop, ref.text)
             pt = self._to_screenshot(gp, viewport)

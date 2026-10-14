@@ -128,6 +128,11 @@ class PostWorkflow:
             if outcome.status != "found":
                 continue  # never click on uncertainty; re-capture and search again
 
+            # The screen may have changed since the screenshot (another app took focus).
+            # Only click if the desktop is still what we grounded on.
+            if desktop.visible_windows():
+                self.log("  screen changed since screenshot; re-grounding instead of clicking")
+                continue
             desktop.double_click(*click_pt)
             launched = desktop.wait_until(
                 lambda: desktop.is_running(APP) and desktop.frontmost_app() == APP, timeout=12)

@@ -136,49 +136,94 @@ def wait_until(predicate, timeout: float, poll: float = 0.25) -> bool:
     return predicate()
 
 
-def visible_windows() -> list[tuple[str, tuple[float, float, float, float]]]:
-    """Normal (layer-0) windows on the current Space: (owner, (x, y, w, h)) in points."""
+def _visible_window_info() -> list[dict]:
     import Quartz
 
     opts = Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements
+    return [w for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
+            if w.get("kCGWindowLayer") == 0]
+
+
+def visible_windows() -> list[tuple[str, tuple[float, float, float, float]]]:
+    """Normal (layer-0) windows on the current Space: (owner, (x, y, w, h)) in points."""
     out = []
-    for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID):
-        if w.get("kCGWindowLayer") == 0:
-            b = w["kCGWindowBounds"]
-            out.append((str(w.get("kCGWindowOwnerName")), (b["X"], b["Y"], b["Width"], b["Height"])))
+    for w in _visible_window_info():
+        b = w["kCGWindowBounds"]
+        out.append((str(w.get("kCGWindowOwnerName")), (b["X"], b["Y"], b["Width"], b["Height"])))
     return out
 
 
-def _finder_window_ids() -> set[int]:
-    import Quartz
+def _ax_windows(pid: int) -> list:
+    from ApplicationServices import AXUIElementCopyAttributeValue, AXUIElementCreateApplication
 
-    info = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionAll, Quartz.kCGNullWindowID)
-    return {
-        int(w["kCGWindowNumber"])
-        for w in info
-        if w.get("kCGWindowOwnerName") == "Finder" and w.get("kCGWindowLayer") == 0
-    }
+    _err, windows = AXUIElementCopyAttributeValue(AXUIElementCreateApplication(pid), "AXWindows",
+                                                  None)
+    return list(windows or [])
+
+
+def _minimize_windows(pid: int) -> None:
+    """Minimise an app's windows through the Accessibility API (no keystrokes)."""
+    from ApplicationServices import AXUIElementSetAttributeValue
+
+    for win in _ax_windows(pid):
+        AXUIElementSetAttributeValue(win, "AXMinimized", True)
+
+
+def _close_ax_window(win) -> None:
+    from ApplicationServices import AXUIElementCopyAttributeValue, AXUIElementPerformAction
+
+    _err, button = AXUIElementCopyAttributeValue(win, "AXCloseButton", None)
+    if button is not None:
+        AXUIElementPerformAction(button, "AXPress")
+
+
+def _finder_pid() -> int | None:
+    from AppKit import NSRunningApplication
+
+    apps = NSRunningApplication.runningApplicationsWithBundleIdentifier_("com.apple.finder")
+    return int(apps[0].processIdentifier()) if apps else None
 
 
 def show_desktop() -> bool:
-    """Bring the desktop to the front: activate Finder, close any window that activation
-    itself opened, and hide other apps. Returns True if no normal windows remain visible.
+    """Uncover the desktop without sending any keystrokes. Returns True when Finder is
+    frontmost and no normal windows remain visible.
 
-    Finder is activated through Launch Services (`open -b`), because macOS ignores
-    programmatic focus-stealing from a background process. This touches Finder only —
-    the target app is never launched this way.
+    1. Activate Finder via Launch Services (`open -b`) — the only reliable way to leave a
+       full-screen Space. If that reopen event creates a Finder window, close exactly that
+       window via its Accessibility close button.
+    2. Hide every other app with windows on screen (NSRunningApplication.hide).
+    3. Minimise (never close) any pre-existing Finder windows via Accessibility.
+
+    Keystrokes are deliberately avoided: shortcuts go to whichever app is frontmost, and
+    modifier taps can trigger user-configured global hotkeys.
     """
-    before = _finder_window_ids()
+    from AppKit import NSRunningApplication
+
+    finder = _finder_pid()
+    if finder is None:
+        return False
+    before = len(_ax_windows(finder))
     subprocess.run(["open", "-b", "com.apple.finder"], check=True)
     wait_until(lambda: frontmost_app() == "Finder", timeout=5)
     time.sleep(0.4)
-    if _finder_window_ids() - before:  # the reopen event created a window; close only that one
-        hotkey("command", "w")
+    after = _ax_windows(finder)
+    if len(after) > before:
+        _close_ax_window(after[0])  # the window our reopen event created (frontmost)
         time.sleep(0.3)
-    hotkey("option", "command", "h")  # Finder ▸ Hide Others
-    if any(owner == "Finder" for owner, _ in visible_windows()):
-        hotkey("option", "command", "m")  # minimise (never close) pre-existing Finder windows
-    return wait_until(lambda: not visible_windows(), timeout=3)
+
+    for _ in range(2):
+        pids = {int(w["kCGWindowOwnerPID"]): str(w.get("kCGWindowOwnerName"))
+                for w in _visible_window_info()}
+        for pid, owner in pids.items():
+            if owner == "Finder":
+                _minimize_windows(pid)
+            else:
+                app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
+                if app is not None:
+                    app.hide()
+        if wait_until(lambda: not visible_windows(), timeout=3):
+            break
+    return frontmost_app() == "Finder" and not visible_windows()
 
 
 def app_windows(app_name: str) -> list[str]:

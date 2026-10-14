@@ -1,0 +1,146 @@
+{
+  "status": "found",
+  "instruction": "TextEdit application icon on the desktop",
+  "point_px": [
+    221.44,
+    233.51999999999998
+  ],
+  "viewport": [
+    0,
+    0,
+    1280,
+    1112
+  ],
+  "events": [
+    {
+      "event": "position_inference",
+      "t": 2.59,
+      "depth": 0,
+      "viewport": [
+        0,
+        0,
+        3420,
+        2224
+      ],
+      "raw": "The <element>TextEdit application icon</element> sits in the <area>top-left corner of the desktop</area>, just below the <neighbor>Apple menu</neighbor> and the <neighbor>Finder menu</neighbor> in the menu bar. It is labeled \"TextEdit\" and appears selected.",
+      "references": [
+        [
+          "element",
+          "TextEdit application icon"
+        ],
+        [
+          "area",
+          "top-left corner of the desktop"
+        ],
+        [
+          "neighbor",
+          "Apple menu"
+        ],
+        [
+          "neighbor",
+          "Finder menu"
+        ]
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 13.18,
+      "depth": 0,
+      "kind": "element",
+      "text": "TextEdit application icon",
+      "raw": "[65, 110]",
+      "point_px": [
+        222.3,
+        244.64000000000001
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 18.45,
+      "depth": 0,
+      "kind": "area",
+      "text": "top-left corner of the desktop",
+      "raw": "[16, 17]",
+      "point_px": [
+        54.72,
+        37.808
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 24.34,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "Apple menu",
+      "raw": "[18, 17]",
+      "point_px": [
+        61.559999999999995,
+        37.808
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 29.69,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "Finder menu",
+      "raw": "[45, 18]",
+      "point_px": [
+        153.9,
+        40.032
+      ]
+    },
+    {
+      "event": "candidates",
+      "t": 29.7,
+      "depth": 0,
+      "patches": [
+        [
+          [
+            0,
+            0,
+            1280,
+            1112
+          ],
+          0.684
+        ]
+      ]
+    },
+    {
+      "event": "ground_target",
+      "t": 37.29,
+      "depth": 1,
+      "viewport": [
+        0,
+        0,
+        1280,
+        1112
+      ],
+      "instruction": "TextEdit application icon on the desktop",
+      "raw": "[173, 210]",
+      "point_px": [
+        221.44,
+        233.51999999999998
+      ]
+    },
+    {
+      "event": "check",
+      "t": 41.29,
+      "depth": 1,
+      "point_px": [
+        221.44,
+        233.51999999999998
+      ],
+      "result": "is_target",
+      "new_instruction": "The TextEdit alias icon on the desktop, in the upper-left area above the 'TextEdit' label.",
+      "analysis": "A macOS desktop showing the Finder menu bar and a single selected desktop icon labeled TextEdit, which is an alias (shortcut arrow). The red box surrounds the TextEdit icon image, matching the target."
+    }
+  ],
+  "planner_calls": 2,
+  "grounder_calls": 5,
+  "seconds": 41.29521775001194,
+  "click_pt": [
+    110.72,
+    116.75999999999999
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "what": "Real ScreenSeekeR runs on a live macOS desktop (no mocks). `tjm-agent ground` = locate only, no click.",
+  "code": "Grounding code as committed in da28d05 (runs were made on the working tree just before that commit; the only later change before the bottom-right/center runs was show_desktop, which does not affect search).",
+  "machine": "Apple M2, 8 GB, macOS 26.3, built-in display 1710x1112 pt / 3420x2224 px (scale 2.0)",
+  "planner": "claude-opus-5-5, effort=low, images downscaled to <=1568 px JPEG",
+  "grounder": "mlx-community/UI-Venus-1.5-2B-6bit (local, MLX), inputs downscaled to <=1280 px",
+  "search": {
+    "max_depth": 3,
+    "leaf_size": 1280,
+    "patch_cap": 0.5,
+    "sigma": 0.3,
+    "nms_iou": 0.5,
+    "max_refs": 6,
+    "max_candidates": 3
+  },
+  "images": "Annotated full screenshots downscaled 2x for the repo. Yellow = candidate patches with Eq.1 scores, dots = grounded planner references, blue = verified leaf crop, red = final hit.",
+  "date": "2026-10-14",
+  "runs": [
+    {
+      "image": "icon_top_left.png",
+      "trace": "icon_top_left.json",
+      "condition": "alias dragged to top-left by a person",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "point_px": [
+        221.44,
+        233.51999999999998
+      ],
+      "click_pt": [
+        110.72,
+        116.75999999999999
+      ],
+      "seconds": 41.3,
+      "planner_calls": 2,
+      "grounder_calls": 5
+    },
+    {
+      "image": "icon_bottom_right.png",
+      "trace": "icon_bottom_right.json",
+      "condition": "alias dragged to bottom-right (against the Dock) by a person",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "point_px": [
+        3311.2,
+        1987.1440000000002
+      ],
+      "click_pt": [
+        1655.6,
+        993.5720000000001
+      ],
+      "seconds": 70.6,
+      "planner_calls": 3,
+      "grounder_calls": 7
+    },
+    {
+      "image": "icon_center.png",
+      "trace": "icon_center.json",
+      "condition": "alias dragged to screen centre (busy wallpaper) by a person",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "point_px": [
+        1718.96,
+        1108.664
+      ],
+      "click_pt": [
+        859.48,
+        554.332
+      ],
+      "seconds": 45.8,
+      "planner_calls": 2,
+      "grounder_calls": 6
+    },
+    {
+      "image": "absent_blender.png",
+      "trace": "absent_blender.json",
+      "condition": "target absent: must abstain, no click",
+      "target": "Blender application icon on the desktop",
+      "status": "not_found",
+      "point_px": null,
+      "click_pt": null,
+      "seconds": 56.9,
+      "planner_calls": 2,
+      "grounder_calls": 7
+    }
+  ]
+}

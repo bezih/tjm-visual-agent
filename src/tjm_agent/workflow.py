@@ -220,19 +220,43 @@ class PostWorkflow:
             result.seconds = round(time.monotonic() - t0, 1)
         return result
 
+    def _type_into_focused_field(self, text: str, what: str) -> None:
+        """Select-all + type into the focused text field, then read it back via
+        Accessibility. Never press Return on a field whose content we have not confirmed."""
+        for _ in range(2):
+            desktop.hotkey("command", "a")
+            desktop.type_text(text)
+            if desktop.wait_until(lambda: desktop.focused_field(APP)[1] == text, timeout=2):
+                return
+        raise WorkflowError(f"{what} field shows {desktop.focused_field(APP)[1]!r}, "
+                            f"expected {text!r}")
+
+    def _wait_for_text_field(self, what: str, timeout: float = 6) -> None:
+        if not desktop.wait_until(lambda: desktop.focused_field(APP)[0] == "AXTextField",
+                                  timeout=timeout):
+            raise WorkflowError(f"{what} did not appear (focused: {desktop.focused_field(APP)})")
+
     def save_as(self, post: Post, result: PostResult) -> None:
         target = self.output_dir / post.filename
         desktop.hotkey("command", "s")
-        time.sleep(1.2)  # save sheet slides in; name field is focused with "Untitled" selected
-        desktop.hotkey("command", "a")
-        desktop.type_text(post.filename)
+        self._wait_for_text_field("save sheet name field")
+        time.sleep(0.3)  # let the sheet finish animating
+        self._type_into_focused_field(post.filename, "save name")
+
         desktop.hotkey("command", "shift", "g")  # Go to Folder
-        time.sleep(0.8)
-        desktop.hotkey("command", "a")
-        desktop.type_text(str(self.output_dir))
-        time.sleep(0.6)
-        desktop.press("return")  # confirm folder
-        time.sleep(1.0)
+        if not desktop.wait_until(
+                lambda: desktop.focused_field(APP)[0] == "AXTextField"
+                and desktop.focused_field(APP)[1] != post.filename, timeout=5):
+            raise WorkflowError("Go to Folder field did not appear")
+        self._type_into_focused_field(str(self.output_dir), "Go to Folder")
+        time.sleep(0.4)  # path completion list settles
+        desktop.press("return")  # confirm folder; focus returns to the name field
+
+        if not desktop.wait_until(lambda: desktop.focused_field(APP)[1] == post.filename,
+                                  timeout=4):
+            # Some macOS versions reset/blur the name field after navigation; re-enter it.
+            self._wait_for_text_field("save sheet name field", timeout=2)
+            self._type_into_focused_field(post.filename, "save name")
         desktop.press("return")  # default button: Save
         if desktop.wait_until(target.exists, timeout=6):
             return

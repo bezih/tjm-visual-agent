@@ -61,8 +61,22 @@ def move(x_pt: float, y_pt: float) -> None:
 
 
 def double_click(x_pt: float, y_pt: float) -> None:
+    """Double-click with Quartz events carrying an explicit click count (1 then 2).
+
+    pyautogui's doubleClick posts two independent clicks; Finder does not treat those as a
+    double-click on a desktop icon.
+    """
+    import Quartz
+
     pyautogui.moveTo(x_pt, y_pt, duration=0.15)
-    pyautogui.doubleClick(x_pt, y_pt, interval=0.08)
+    point = Quartz.CGPointMake(x_pt, y_pt)
+    for count in (1, 2):
+        for kind in (Quartz.kCGEventLeftMouseDown, Quartz.kCGEventLeftMouseUp):
+            ev = Quartz.CGEventCreateMouseEvent(None, kind, point, Quartz.kCGMouseButtonLeft)
+            Quartz.CGEventSetIntegerValueField(ev, Quartz.kCGMouseEventClickState, count)
+            Quartz.CGEventPost(Quartz.kCGHIDEventTap, ev)
+            time.sleep(0.02)
+        time.sleep(0.06)
 
 
 def click(x_pt: float, y_pt: float) -> None:
@@ -236,3 +250,22 @@ def app_windows(app_name: str) -> list[str]:
         for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
         if w.get("kCGWindowOwnerName") == app_name and w.get("kCGWindowLayer") == 0
     ]
+
+
+def focused_field(app_name: str) -> tuple[str | None, str | None]:
+    """(AXRole, AXValue) of the app's focused UI element — used to confirm what a text
+    field actually contains before pressing Return. Verification only."""
+    from AppKit import NSRunningApplication, NSWorkspace
+    from ApplicationServices import AXUIElementCopyAttributeValue, AXUIElementCreateApplication
+
+    pid = next((int(a.processIdentifier()) for a in NSWorkspace.sharedWorkspace().runningApplications()
+                if a.localizedName() == app_name), None)
+    if pid is None or NSRunningApplication.runningApplicationWithProcessIdentifier_(pid) is None:
+        return None, None
+    _e, el = AXUIElementCopyAttributeValue(AXUIElementCreateApplication(pid), "AXFocusedUIElement",
+                                           None)
+    if el is None:
+        return None, None
+    _e, role = AXUIElementCopyAttributeValue(el, "AXRole", None)
+    _e, value = AXUIElementCopyAttributeValue(el, "AXValue", None)
+    return (str(role) if role else None, str(value) if value is not None else None)

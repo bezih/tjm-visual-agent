@@ -78,11 +78,31 @@ def press(key: str) -> None:
     pyautogui.press(key)
 
 
-def type_text(text: str, interval: float = 0.004) -> None:
-    """Type text as real keystrokes. Newlines are sent as Return."""
+_RETURN_KEYCODE = 36
+
+
+def type_text(text: str, interval: float = 0.006) -> None:
+    """Type text as real key events. Each character is posted as a Quartz keyboard event
+    carrying its Unicode value (layout-independent, correct case); newlines are Return.
+
+    pyautogui.write is not used: on macOS it drops Shift for some capitals ("Title" → "title").
+    """
+    import Quartz
+
     if not text.isascii():
-        raise ValueError("type_text only supports ASCII; non-ASCII would be dropped silently")
-    pyautogui.write(text, interval=interval)
+        raise ValueError("type_text only supports ASCII")
+    for ch in text:
+        if ch == "\n":
+            down = Quartz.CGEventCreateKeyboardEvent(None, _RETURN_KEYCODE, True)
+            up = Quartz.CGEventCreateKeyboardEvent(None, _RETURN_KEYCODE, False)
+        else:
+            down = Quartz.CGEventCreateKeyboardEvent(None, 0, True)
+            up = Quartz.CGEventCreateKeyboardEvent(None, 0, False)
+            Quartz.CGEventKeyboardSetUnicodeString(down, 1, ch)
+            Quartz.CGEventKeyboardSetUnicodeString(up, 1, ch)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, down)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, up)
+        time.sleep(interval)
 
 
 def mouse_position() -> tuple[float, float]:
@@ -95,7 +115,10 @@ def mouse_position() -> tuple[float, float]:
 
 def frontmost_app() -> str | None:
     from AppKit import NSWorkspace
+    from Foundation import NSDate, NSRunLoop
 
+    # NSWorkspace only refreshes frontmostApplication when the run loop turns.
+    NSRunLoop.currentRunLoop().runUntilDate_(NSDate.dateWithTimeIntervalSinceNow_(0.02))
     app = NSWorkspace.sharedWorkspace().frontmostApplication()
     return str(app.localizedName()) if app else None
 
@@ -156,3 +179,15 @@ def show_desktop() -> bool:
     if any(owner == "Finder" for owner, _ in visible_windows()):
         hotkey("option", "command", "m")  # minimise (never close) pre-existing Finder windows
     return wait_until(lambda: not visible_windows(), timeout=3)
+
+
+def app_windows(app_name: str) -> list[str]:
+    """Titles of the app's on-screen windows (verification only)."""
+    import Quartz
+
+    opts = Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements
+    return [
+        str(w.get("kCGWindowName") or "")
+        for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
+        if w.get("kCGWindowOwnerName") == app_name and w.get("kCGWindowLayer") == 0
+    ]

@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import time
+from dataclasses import asdict
 
 from . import config
 
@@ -55,6 +57,51 @@ def cmd_ground(args, settings) -> int:
     return 0 if outcome.status == "found" else 2
 
 
+def cmd_run(args, settings) -> int:
+    import subprocess
+
+    from . import trace
+    from .posts import fetch_posts
+    from .workflow import PostWorkflow, TextEditPrefs, WorkflowError, write_summary
+
+    posts = fetch_posts(settings.posts_url, args.posts)
+    print(f"fetched {len(posts)} posts: ids {[p.id for p in posts]}")
+    out = settings.output_dir
+    out.mkdir(parents=True, exist_ok=True)
+    existing = [p.filename for p in posts if (out / p.filename).exists()]
+    if existing:
+        print(f"refusing to start: {existing} already exist in {out}. Move them away first.")
+        return 1
+
+    run_dir = trace.new_run_dir()
+    flow = PostWorkflow(_engine(settings), settings.icon_target, out, run_dir)
+    results = []
+    t0 = time.monotonic()
+    try:
+        with TextEditPrefs(run_dir / "textedit-prefs-backup.json"):
+            for post in posts:
+                print(f"post {post.id}: {post.filename}")
+                r = flow.run_post(post)
+                results.append(r)
+                print(f"  -> {'OK' if r.ok else 'FAILED'}: {r.reason} ({r.seconds}s)")
+                if r.fatal:
+                    print("  stopping: desktop state is unsafe to continue")
+                    break
+    except WorkflowError as e:
+        print(f"stopped: {e}")
+        return 1
+    commit = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True,
+                            text=True, check=False).stdout.strip()
+    ok = sum(r.ok for r in results)
+    summary = write_summary(run_dir, results, {
+        "commit": commit, "planner": settings.planner_model, "effort": settings.planner_effort,
+        "grounder": settings.grounder_repo, "search": asdict(settings.search),
+        "posts_ok": ok, "posts_total": len(posts), "seconds": round(time.monotonic() - t0, 1),
+    })
+    print(f"{ok}/{len(posts)} posts saved and verified. summary: {summary}")
+    return 0 if ok == len(posts) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="tjm-agent")
     sub = p.add_subparsers(dest="command", required=True)
@@ -64,11 +111,13 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--name", default="ground")
     g.add_argument("--hover", action="store_true", help="move the mouse to the result")
     g.add_argument("--no-show-desktop", action="store_true")
+    r = sub.add_parser("run", help="run the ten-post TextEdit workflow")
+    r.add_argument("--posts", type=int, default=10)
     args = p.parse_args(argv)
     settings = config.load()
     if getattr(args, "target", "") is None:
         args.target = settings.icon_target
-    return {"doctor": cmd_doctor, "ground": cmd_ground}[args.command](args, settings)
+    return {"doctor": cmd_doctor, "ground": cmd_ground, "run": cmd_run}[args.command](args, settings)
 
 
 if __name__ == "__main__":

@@ -46,3 +46,19 @@ GROUNDER = (
     "[x,y]. Additionally, if the task is infeasible (e.g., the task is not related to the "
     "image), the output should be [-1,-1]."
 )
+
+# Our addition (not from the paper): triage an unexpected screen state so the workflow can
+# decide whether a bounded, safe dismissal exists. The chosen button is then located by
+# ScreenSeekeR from its description — no stored image or coordinates.
+DIALOG_TRIAGE = """You are helping a desktop automation script that was in the middle of this step:
+{step}
+The screen did not reach the expected state ({expected}). Look at the screenshot.
+1. Is there a dialog, alert, sheet, panel or pop-up in front? Describe it briefly.
+2. List the buttons it offers, exactly as labelled.
+3. Classify the safest way forward:
+- "safe": one button dismisses or answers it without deleting, overwriting, discarding user data, granting permissions, or sending anything.
+- "destructive": every way forward risks data loss or overwriting.
+- "permission": it asks to grant access, log in, or install something.
+- "none": there is no dialog; the screen simply shows something else.
+- "unknown": unclear.
+4. If "safe", give the exact label of the one button to click."""

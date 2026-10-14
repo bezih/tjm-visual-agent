@@ -137,6 +137,35 @@ class ClaudePlanner:
             raise RuntimeError(f"planner check failed (stop_reason={resp.stop_reason})")
         return resp.parsed_output
 
+    def triage(self, screenshot: Image.Image, step: str, expected: str) -> DialogTriage:
+        t0 = time.monotonic()
+        resp = self._client.messages.parse(
+            model=self.model,
+            max_tokens=4000,
+            output_config={"effort": self.effort},
+            output_format=DialogTriage,
+            messages=[
+                {
+                    "role": "user",
+                    "content": self._content(
+                        screenshot, prompts.DIALOG_TRIAGE.format(step=step, expected=expected)
+                    ),
+                }
+            ],
+        )
+        self.calls += 1
+        self.seconds += time.monotonic() - t0
+        if resp.stop_reason == "refusal" or resp.parsed_output is None:
+            raise RuntimeError(f"planner triage failed (stop_reason={resp.stop_reason})")
+        return resp.parsed_output
+
+
+class DialogTriage(BaseModel):
+    description: str
+    buttons: list[str]
+    risk: Literal["safe", "destructive", "permission", "none", "unknown"]
+    button_to_click: str | None = None
+
 
 # ----------------------------------------------------------------------------- grounder
 

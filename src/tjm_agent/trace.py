@@ -1,0 +1,81 @@
+"""Search traces: JSON events + an annotated screenshot of what the engine looked at."""
+
+from __future__ import annotations
+
+import json
+import time
+from dataclasses import asdict
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
+
+from .grounding.screenseeker import Outcome
+
+COLORS = {
+    "element": (255, 64, 129),
+    "area": (255, 193, 7),
+    "neighbor": (0, 188, 212),
+}
+
+
+def _font(size: int):
+    try:
+        return ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Bold.ttf", size)
+    except OSError:
+        return ImageFont.load_default()
+
+
+def annotate(screenshot: Image.Image, outcome: Outcome, click_pt=None, title: str = "") -> Image.Image:
+    img = screenshot.copy().convert("RGB")
+    d = ImageDraw.Draw(img, "RGBA")
+    small, big = _font(26), _font(40)
+
+    for ev in outcome.events:
+        if ev["event"] == "candidates":
+            for rank, (box, score) in enumerate(ev["patches"], 1):
+                d.rectangle(box, outline=(255, 235, 59, 255), width=5)
+                d.text((box[0] + 10, box[1] + 8), f"candidate #{rank}  score {score}",
+                       fill=(255, 235, 59), font=small, stroke_width=3, stroke_fill="black")
+        elif ev["event"] == "ground_reference" and ev.get("point_px"):
+            x, y = ev["point_px"]
+            c = COLORS.get(ev["kind"], (255, 255, 255))
+            d.ellipse([x - 12, y - 12, x + 12, y + 12], fill=c + (230,), outline="black", width=3)
+            d.text((x + 18, y - 14), f"{ev['kind']}: {ev['text'][:40]}", fill=c, font=small,
+                   stroke_width=3, stroke_fill="black")
+        elif ev["event"] == "ground_target" and ev.get("viewport"):
+            d.rectangle(ev["viewport"], outline=(33, 150, 243, 255), width=6)
+
+    if outcome.status == "found":
+        x, y = outcome.point_px
+        d.rectangle([x - 80, y - 80, x + 80, y + 80], outline=(244, 67, 54, 255), width=8)
+        d.line([x - 110, y, x + 110, y], fill=(244, 67, 54, 255), width=4)
+        d.line([x, y - 110, x, y + 110], fill=(244, 67, 54, 255), width=4)
+        label = f"FOUND  px=({x:.0f},{y:.0f})"
+        if click_pt:
+            label += f"  click pt=({click_pt[0]:.0f},{click_pt[1]:.0f})"
+        tx = min(max(20, x - 300), img.width - 900)
+        ty = y + 100 if y < img.height - 200 else y - 150
+        d.text((tx, ty), label, fill=(244, 67, 54), font=big, stroke_width=4, stroke_fill="white")
+
+    header = (f"{title}  |  target: \"{outcome.instruction}\"  |  {outcome.status}  |  "
+              f"{outcome.seconds:.1f}s, planner calls {outcome.planner_calls}, "
+              f"grounder calls {outcome.grounder_calls}")
+    d.rectangle([0, img.height - 70, img.width, img.height], fill=(0, 0, 0, 200))
+    d.text((24, img.height - 56), header.strip(" |"), fill="white", font=big)
+    return img
+
+
+def save(run_dir: Path, name: str, screenshot: Image.Image, outcome: Outcome, click_pt=None,
+         title: str = "") -> Path:
+    run_dir.mkdir(parents=True, exist_ok=True)
+    screenshot.save(run_dir / f"{name}_raw.png")
+    annotate(screenshot, outcome, click_pt, title).save(run_dir / f"{name}_annotated.png")
+    data = asdict(outcome)
+    data["viewport"] = outcome.viewport.as_int() if outcome.viewport else None
+    data["click_pt"] = click_pt
+    (run_dir / f"{name}.json").write_text(json.dumps(data, indent=2, default=str))
+    return run_dir / f"{name}_annotated.png"
+
+
+def new_run_dir(root: Path = Path("artifacts")) -> Path:
+    return root / time.strftime("run-%Y%m%d-%H%M%S")

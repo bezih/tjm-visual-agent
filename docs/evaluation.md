@@ -1,4 +1,4 @@
-# Evaluation: measured results, failures, and deviations
+# Evaluation: measured results, failures, and paper fidelity
 
 Everything here is from **real runs** on one Mac unless marked *unit test*: Apple M2, 8 GB,
 macOS 26.3, 3420×2224 px / 1710×1112 pt. Planner `claude-opus-5-5`; grounder
@@ -167,25 +167,43 @@ checks cannot tell those apart. Only the grounding check can.
   - ground the planner's references in one batched call;
   - cache the planner's layout description between launches.
 
-## 7. Deviations from the paper (and from my design doc)
+## 7. Paper fidelity
 
-**From the paper:**
-- The grounder returns **points**, not boxes, so a fixed voter box is formed around each point.
-- Claude replaces GPT-4o as the planner, and UI-Venus-1.5-2B replaces OS-Atlas-7B as the
-  grounder.
-- Algorithm 1's ordering inconsistencies are resolved as described in design.md §5.
-- **The result check gets whole-screen context** (our addition, failure #7).
-- `<element>` references are grounded first, within the reference cap.
-- The position-inference prompt says the target "is guaranteed to be present". As a result,
-  the planner rarely answers "No target" and still proposes regions for absent targets. The
-  result check is what produces abstention.
+The grounding is the ScreenSeekeR method from the paper (§4.2, Algorithm 1, Appendix C).
 
-**From the design doc:**
-- Plain text is enforced through TextEdit preferences set for the run and then restored, not
-  through the Format menu.
-- No `ambiguous` outcome: the search returns the first verified match.
-- Uncovering the desktop is keystroke-free (failure #5).
-- Latency is about 3× the design estimate.
+**Identical to the paper:**
+- **The search itself:**
+  1. The planner proposes where to look.
+  2. The grounder locates each reference.
+  3. Candidates are enlarged, then scored with the paper's centre-distance formula (Eq. 1,
+     σ = 0.3).
+  4. Overlaps are removed.
+  5. The search zooms in recursively until the crop is at most 1280 px (the paper's leaf
+     size).
+- **Both prompts, word for word:** position inference (Table 7) and result checking (Table 8).
+- **The verification step:** the hit is marked with a red box and checked. The check answers
+  *is_target*, *target_elsewhere* (retry with the rewritten instruction) or
+  *target_not_found*, and only *is_target* ends the search.
+
+**Adapted, and why:**
+
+| Adaptation | Reason |
+|---|---|
+| Claude as planner (paper: GPT-4o); UI-Venus-1.5-2B as grounder (paper: OS-Atlas-7B) | Same roles and prompts. The paper's models are examples of "a strong planner" and "a GUI grounder", and a 7B grounder does not fit in 8 GB of RAM |
+| The grounder returns points, so a small box is formed around each point | UI-Venus outputs points. The next step enlarges every box anyway |
+| Algorithm 1's step order: score before removing overlaps; depth starts at 0 | The pseudocode scores `nms_patches` before creating them and resets depth inside the recursion, so it cannot run as written (design.md §5) |
+| The result check also sees a whole-screen thumbnail | Our addition, made after a real failure (#7): the crop-only check accepted a Dock icon for "on the desktop". The paper's prompt is unchanged; the addendum is clearly marked |
+| `<element>` references are grounded first, within the reference cap | A small ordering choice inside the paper's own step |
+
+**Observed behaviour of the paper's prompt:** it tells the planner the target "is guaranteed to
+be present", so the planner rarely answers "No target" and still proposes regions for absent
+targets. The result check is what produces abstention, which is the paper's own safety step.
+
+**Workflow choices, which are not part of the paper:**
+- Plain text is enforced through TextEdit preferences for the run, not the Format menu.
+- The search returns the first verified match; there is no `ambiguous` outcome.
+- The desktop is uncovered without keystrokes (failure #5).
+- Latency is about 3× the first design estimate.
 
 ## 8. Known limitations
 

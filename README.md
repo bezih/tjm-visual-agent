@@ -13,7 +13,7 @@ takes a new screenshot and runs a new search, so it never reuses the icon's last
 
 > **Platform:** the brief targets Windows/Notepad. With permission, this runs on **macOS with
 > TextEdit**, launched from a TextEdit alias on the desktop. See [docs/design.md §2](docs/design.md)
-> for the full mapping and every deviation.
+> for the full mapping.
 
 ## Quick start
 

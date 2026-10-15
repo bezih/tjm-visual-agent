@@ -21,7 +21,7 @@ Do not speculate about operations that could change the screenshot.
 Instruction:
 {instruction}"""
 
-# Deviation (documented in docs/design.md): the paper's prompt asserts the target is
+# Note (see docs/evaluation.md §7): the paper's prompt asserts the target is
 # guaranteed to be present. In live use it may not be, so the abstention line above
 # ("If the target does not exist ... output "No target"") is what we rely on; the
 # "guaranteed" note is kept verbatim for paper fidelity.

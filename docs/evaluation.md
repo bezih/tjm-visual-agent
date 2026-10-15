@@ -14,8 +14,8 @@ need a much larger test matrix (see the end of this document).
 | Run | Code | Posts saved and verified | Launches | Fresh searches | Dialogs handled | Wall time |
 |---|---|---|---|---|---|---|
 | Full run 1 (01:13) | `6f329f1` | **10/10** byte-exact | 10, all from the desktop alias | 11 (1 safety re-search) | 0 | 772 s |
-| Pop-up test (20:57) | `a561716` | 1/1 | 1 | 2 | 1: clicked **Later** | 221 s |
-| Full run 2 (21:01, final code) | `a561716` | **10/10** byte-exact | 10, all from the desktop alias | 11 (1 safety re-search) | 0 dialogs; 1 notification banner | 689 s |
+| Pop-up test (20:57) | `fbfbc60` | 1/1 | 1 | 2 | 1: clicked **Later** | 221 s |
+| Full run 2 (21:01, final code) | `fbfbc60` | **10/10** byte-exact | 10, all from the desktop alias | 11 (1 safety re-search) | 0 dialogs; 1 notification banner | 689 s |
 
 I independently re-checked both full runs against a fresh API download: 10/10 files match
 `"Title: {title}\n\n{body}"` byte for byte each time. In each run, one post needed a second

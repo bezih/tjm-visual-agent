@@ -1,6 +1,6 @@
 {
   "what": "Real ScreenSeekeR runs on a live macOS desktop (no mocks). `tjm-agent ground` = locate only, no click.",
-  "code": "The four position/absent searches ran on the grounding code committed in 273a336 (before the location-aware result check added in a561716). Images were re-rendered later from the saved raw screenshots and traces with improved annotations (7916214); no search was re-run for them.",
+  "code": "The four position/absent searches ran on the grounding code committed in 273a336 (before the location-aware result check added in fbfbc60). Images were re-rendered later from the saved raw screenshots and traces with improved annotations (e93e442); no search was re-run for them.",
   "machine": "Apple M2, 8 GB, macOS 26.3, built-in display 1710x1112 pt / 3420x2224 px (scale 2.0)",
   "planner": "claude-opus-5-5, effort=low (at 273a336 the result check also used low)",
   "grounder": "mlx-community/UI-Venus-1.5-2B-6bit (local, MLX), inputs downscaled to <=1280 px",
@@ -84,8 +84,8 @@
     }
   ],
   "more": {
-    "popup/": "Live pop-up test on a561716: icon covered -> not_found -> triage safe -> 'Later' grounded by label and clicked (fixture log: 'Later clicked') -> icon found -> post saved. See popup/summary.json.",
-    "full_run/": "Final full run on a561716: 10/10 posts byte-exact, 11 searches all found, 689 s. Sample traces: post 1, post 2 (both attempts: a notification banner changed the screen before the click, so the agent re-searched), post 10. Full summary.json included.",
+    "popup/": "Live pop-up test on fbfbc60: icon covered -> not_found -> triage safe -> 'Later' grounded by label and clicked (fixture log: 'Later clicked') -> icon found -> post saved. See popup/summary.json.",
+    "full_run/": "Final full run on fbfbc60: 10/10 posts byte-exact, 11 searches all found, 689 s. Sample traces: post 1, post 2 (both attempts: a notification banner changed the screen before the click, so the agent re-searched), post 10. Full summary.json included.",
     "bonus/": "Live bonus challenges (code at the commit that adds this folder): lookalike icons, 32/128 px icons, light and dark themes, 5/5 correct. See bonus/summary.json, including invalid runs that were excluded and why."
   }
 }

@@ -34,7 +34,7 @@ def annotate(screenshot: Image.Image, outcome: Outcome, click_pt=None, title: st
         if ev["event"] == "candidates":
             for rank, (box, score) in enumerate(ev["patches"], 1):
                 d.rectangle(box, outline=(255, 235, 59, 255), width=5)
-                d.text((box[0] + 10, max(box[1] + 8, 70)), f"candidate #{rank}  score {score}",
+                d.text((box[0] + 10, max(box[1] + 8, 230)), f"candidate #{rank}  score {score}",
                        fill=(255, 235, 59), font=small, stroke_width=3, stroke_fill="black")
         elif ev["event"] == "ground_reference" and ev.get("point_px"):
             x, y = ev["point_px"]
@@ -45,25 +45,44 @@ def annotate(screenshot: Image.Image, outcome: Outcome, click_pt=None, title: st
             d.text((x - 18 if right_edge else x + 18, y), label, fill=c, font=small,
                    anchor="rm" if right_edge else "lm", stroke_width=3, stroke_fill="black")
         elif ev["event"] == "ground_target" and ev.get("viewport"):
-            d.rectangle(ev["viewport"], outline=(33, 150, 243, 255), width=6)
+            box = ev["viewport"]
+            d.rectangle(box, outline=(33, 150, 243, 255), width=6)
+            d.text((box[0] + 10, box[3] - 12), "searched here (leaf crop)", anchor="ls",
+                   fill=(100, 181, 246), font=small, stroke_width=3, stroke_fill="black")
+        elif ev["event"] == "check" and ev["result"] != "is_target" and ev.get("point_px"):
+            x, y = ev["point_px"]
+            r = 45
+            d.line([x - r, y - r, x + r, y + r], fill=(244, 67, 54, 255), width=9)
+            d.line([x - r, y + r, x + r, y - r], fill=(244, 67, 54, 255), width=9)
+            why = ev["result"].replace("_", " ")
+            right_edge = x > img.width - 900
+            d.text((x - 60 if right_edge else x + 60, y - 70), f"grounder guess rejected: {why}",
+                   anchor="rs" if right_edge else "ls", fill=(255, 205, 210), font=small,
+                   stroke_width=3, stroke_fill="black")
 
     if outcome.status == "found":
         x, y = outcome.point_px
         d.rectangle([x - 80, y - 80, x + 80, y + 80], outline=(244, 67, 54, 255), width=8)
         d.line([x - 110, y, x + 110, y], fill=(244, 67, 54, 255), width=4)
         d.line([x, y - 110, x, y + 110], fill=(244, 67, 54, 255), width=4)
-        label = f"FOUND  px=({x:.0f},{y:.0f})"
+        label = f"FOUND + verified  px=({x:.0f},{y:.0f})"
         if click_pt:
             label += f"  click pt=({click_pt[0]:.0f},{click_pt[1]:.0f})"
-        tx = min(max(20, x - 300), img.width - 900)
+        tx = min(max(20, x - 300), img.width - 1100)
         ty = y + 100 if y < img.height - 320 else y - 170
         d.text((tx, ty), label, fill=(244, 67, 54), font=big, stroke_width=4, stroke_fill="white")
+    else:
+        msg = {"not_found": "NOT FOUND - no click (agent abstained)",
+               "budget_exhausted": "BUDGET EXHAUSTED - no click"}[outcome.status]
+        d.rectangle([0, 140, img.width, 220], fill=(183, 28, 28, 220))
+        d.text((24, 180), msg, anchor="lm", fill="white", font=big)
 
     header = (f"{title}  |  target: \"{outcome.instruction}\"  |  {outcome.status}  |  "
               f"{outcome.seconds:.1f}s, planner calls {outcome.planner_calls}, "
               f"grounder calls {outcome.grounder_calls}")
-    d.rectangle([0, img.height - 70, img.width, img.height], fill=(0, 0, 0, 200))
-    d.text((24, img.height - 56), header.strip(" |"), fill="white", font=big)
+    # Info bar at the top (under the menu bar) so the Dock area stays visible.
+    d.rectangle([0, 70, img.width, 140], fill=(0, 0, 0, 200))
+    d.text((24, 105), header.strip(" |"), anchor="lm", fill="white", font=big)
     return img
 
 

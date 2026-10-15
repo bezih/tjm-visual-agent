@@ -146,7 +146,10 @@ class PostWorkflow:
                 continue
 
             if not safe_to_click(click_pt, windows_at_capture, desktop.visible_windows()):
-                self.log("  screen changed since screenshot; re-grounding instead of clicking")
+                self.log("  icon covered or screen changed since screenshot; not clicking")
+                if attempt < max_attempts:
+                    self.intervene(result, step="about to double-click the TextEdit alias icon "
+                                   "on the desktop", expected="the icon not covered by any window")
                 continue
             desktop.double_click(*click_pt)
             launched = desktop.wait_until(

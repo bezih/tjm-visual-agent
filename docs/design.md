@@ -1,185 +1,161 @@
 # Design: ScreenSeekeR Visual Grounding for Desktop Automation
 
-*Part 1 design document — TJM Labs take-home. Target length: 3–4 pages.*
+*TJM Labs take-home, Part 1. Results from building and testing are in
+[evaluation.md](evaluation.md).*
 
-## 1. Goal and scope
+## 1. Goal and success criteria
 
-Build a Python application that, from a screenshot alone, locates a desktop icon described in
-natural language, double-clicks it to launch the application, and writes the first ten
-JSONPlaceholder posts to `Desktop/tjm-project/post_{id}.txt` through that application's UI —
-re-grounding the icon from a fresh screenshot before every launch.
+The goal is a Python application that finds a desktop icon from a screenshot alone, given only
+a natural-language description, and double-clicks it to launch the editor. Through the editor's
+UI it then writes the first ten JSONPlaceholder posts to `Desktop/tjm-project/post_{id}.txt`,
+grounding the icon again from a fresh screenshot before every launch. The grounding engine is
+the focus. It implements **ScreenSeekeR** (Li et al., *ScreenSpot-Pro*, 2025: §4.2,
+Algorithm 1, Appendix C) and is target-agnostic:
+`(screenshot, "description of a UI element") → found(point) | not_found`.
 
-The grounding engine is the focus. It is an implementation of **ScreenSeekeR** (Li et al.,
-*ScreenSpot-Pro*, 2025, §4.2, Algorithm 1, Appendix C) and is written to be target-agnostic:
-`(screenshot, "description of a UI element") → location | ambiguous | not_found`. Nothing in it
-knows about Notepad, TextEdit, or blog posts.
+**Success means:**
 
-**Success criteria**
+1. Ten files whose bytes equal `"Title: {title}\n\n{body}"` for the first ten API posts.
+2. Every launch is preceded by a fresh screenshot and a full search; no coordinates are reused.
+3. The icon is found wherever a person drags it, at minimum top-left, centre and bottom-right.
+   The agent **declines to click** when the icon is absent or a hit cannot be verified.
+4. Every search leaves an inspectable trace: planner output, candidates, crops and timings.
 
-1. Ten files, `post_1.txt … post_10.txt`, whose bytes equal `"Title: {title}\n\n{body}"` for the
-   first ten posts returned by the API.
-2. Every launch is preceded by a fresh screenshot and a ScreenSeekeR search; no coordinates are
-   reused between iterations.
-3. The icon is found wherever the reviewer drags it (top-left, center, bottom-right at minimum),
-   and the system *declines to click* when the icon is absent or the result cannot be verified.
-4. Every search leaves an inspectable trace (planner output, candidate boxes, crops, timings).
+## 2. Assumptions: the macOS adaptation
 
-## 2. Assumptions and the macOS adaptation
+The brief specifies Windows 10/11 at 1920×1080 with Notepad. With permission, I am building on
+**macOS (Apple M2, 8 GB, Retina)**:
 
-The assignment specifies Windows 10/11 at 1920×1080 with Notepad. With the interviewer's
-permission I am building on **macOS (Apple M2, 8 GB, built-in Retina display)**:
-
-| Assignment (Windows) | This implementation (macOS) | Why it is equivalent |
+| Windows (brief) | macOS (this build) | Note |
 |---|---|---|
-| Notepad desktop shortcut | **TextEdit alias** on the Desktop | Same role: plain-text editor launched by double-clicking a desktop icon. |
-| 1920×1080 | 1710×1112 points, 3420×2224 pixels (2× Retina) | A *harder* case: screenshots are in pixels, clicks are in points, so coordinate mapping must be explicit. |
-| Ctrl+S / Save dialog | ⌘S / macOS save sheet | Same UI-driven save; filename and folder entered through the dialog. |
-| Close Notepad | Quit TextEdit (⌘Q) | Forces the next iteration to relaunch from the desktop icon. |
+| Notepad desktop shortcut | **TextEdit alias** on the desktop | Same role: a plain-text editor launched from a desktop icon |
+| 1920×1080 | 3420×2224 px screenshot, 1710×1112 pt click space | Harder: pixels and click points differ by 2×, so coordinate mapping must be explicit |
+| Ctrl+S / Save dialog | ⌘S / save sheet | Filename and folder are entered through the dialog |
+| Close Notepad | Quit TextEdit | Forces the next launch to go through the icon again |
 
-Other deviations, stated up front:
+Other ground rules:
 
-- TextEdit defaults to rich text. The workflow switches each new document to plain text
-  (Format ▸ Make Plain Text, ⇧⌘T) and verifies the saved file is UTF-8 `.txt`. TextEdit's
-  "smart quotes/dashes" substitutions are disabled for the run so the typed text is saved
-  byte-exact; this is verified by reading the file back.
-- Grounding uses screenshots only. Accessibility APIs, Spotlight, `open -a`, and stored icon
-  templates are not used to *find or launch* the app. (Reading the saved file from disk is used
-  for *verification*, which the assignment allows.)
-- macOS requires Screen Recording and Accessibility permissions for the terminal running the
-  agent; a `doctor` command checks both before anything runs.
+- The app is found only from screenshots: no Accessibility lookups, Spotlight, `open -a` or
+  stored icon templates.
+- Reading the saved file back from disk is allowed, but only to *verify* the result.
+- TextEdit defaults to rich text and rewrites typed text (smart quotes, auto-capitalisation),
+  so plain-text output must be enforced and checked byte for byte.
+- The agent needs Screen Recording and Accessibility permissions. A `doctor` command checks
+  them before anything runs.
 
-## 3. Why ScreenSeekeR (and not template matching or OCR)
+## 3. Why ScreenSeekeR
 
-The brief asks for an approach that works "for any icon or button even if we don't have the exact
-image or text beforehand" and that can deal with unexpected pop-ups. That rules out the classic
-options as the *primary* method:
+The brief asks for a method that works "for any icon or button even if we don't have the
+exact image or text beforehand" and that copes with unexpected pop-ups. That rules out the
+usual primary methods:
 
-- **Template matching** needs the exact icon image; it breaks with icon size settings, light/dark
-  themes, Retina scaling, and selection highlights, and cannot generalise to unseen targets.
-- **OCR on the label** fails for unlabeled buttons and icons, and for truncated labels.
-- **Single-shot VLM grounding** generalises, but degrades sharply on large, dense, high-resolution
-  screens — the core finding of ScreenSpot-Pro (best model 18.9% when targets cover ~0.07% of the
-  screen).
+- **Template matching** needs the exact image. It breaks with icon size, theme, Retina
+  scaling and selection highlights.
+- **OCR** fails on unlabelled icons and buttons.
+- **Single-shot VLM grounding** generalises, but collapses on large, dense screens. That is
+  ScreenSpot-Pro's central finding: the best model scored 18.9% when targets covered about
+  0.07% of the screen.
 
-ScreenSeekeR addresses that last failure by **narrowing the search the way a person does**: a
-strong multimodal *planner* reasons about where a target is likely to be ("on the desktop, near
-other app aliases"; "in the dialog's button row, next to *Save*"), a specialist *grounder* localises
-those references, and the search recurses into the most promising crop until a verified hit is
-found. In the paper this lifts OS-Atlas-7B from 18.9% to 48.1% on ScreenSpot-Pro with no
-training. A desktop icon is an easy case for this method — the brief says so explicitly — and the
-point of the exercise is that the same engine finds a "Cancel" button in a pop-up it has never seen.
+ScreenSeekeR narrows the search the way a person does. A strong multimodal **planner** reasons
+about where the target probably is ("in the desktop icon column, near other aliases"; "in the
+dialog's button row, next to *Save*"). A specialist **grounder** localises those references,
+and the search recurses into the most promising crop until it finds a hit it can verify.
+Without any training, this lifts OS-Atlas-7B from 18.9% to 48.1%. A desktop icon is an easy
+case, and the brief says so. The point is that the same engine also finds a "Cancel" button
+in a pop-up it has never seen.
 
 ## 4. Models
 
-| Role | Paper | This implementation | Notes |
-|---|---|---|---|
-| Planner (position inference, result checking) | GPT-4o via API | **Claude Opus 5.5** via Anthropic API | Any strong multimodal model fits this role; the paper's prompts are used verbatim. Swapping vendors is a config change. |
-| Grounder | OS-Atlas-7B (local) | **UI-Venus-1.5-2B**, 6-bit MLX, local on Apple Silicon | A 7B grounder does not fit comfortably in 8 GB RAM. UI-Venus-1.5-2B is a GUI-grounding specialist (57.7% on ScreenSpot-Pro by itself, per its model card) and supports explicit refusal (`[-1,-1]`). |
+- **Planner (paper: GPT-4o):** Claude Opus 5.5 via API. It runs position inference and result
+  checking using the paper's prompts verbatim; any strong multimodal model can fill this role.
+- **Grounder (paper: OS-Atlas-7B):** UI-Venus-1.5-2B, 6-bit MLX, running locally. A 7B model
+  does not fit comfortably in 8 GB. UI-Venus is a GUI-grounding specialist, scoring 57.7% on
+  ScreenSpot-Pro on its own per its model card, and it can refuse by answering `[-1,-1]`.
 
-Both sit behind two small interfaces (`Planner`, `Grounder`) in `grounding/backends.py`; nothing
-else in the code imports a model SDK. Disclosure: screenshots and crops are sent to Anthropic's
-API for planning and checking. The demo runs on a cleared desktop so no private content is sent.
+Both models sit behind two small interfaces, and only `grounding/backends.py` imports a model
+SDK. Screenshots and crops are sent to Anthropic for planning and checking, so the demo uses a
+cleared desktop.
 
-## 5. Grounding engine — mapping the paper to code
+## 5. Grounding engine: paper → code
 
 ```
-VisualSearch(T, I, viewport, depth)
-  if depth ≥ Dmax or viewport ≤ Smin:          → leaf: ground + check
-  areas  = Planner.position_inference(T, I)    → <element>, <area>, <neighbor> references
-  boxes  = Grounder.ground(each reference, I)  → points/boxes in viewport coords
-  cands  = dilate(boxes, Smin)                 → context-preserving candidate patches
-  cands  = NMS(cands)                          → drop redundant overlaps
-  score  = Σ_boxes gaussian_center_score(box, cand)    (Eq. 1, σ = 0.3)
-  for cand in sort(cands, score):               → recurse into the crop
-      result = VisualSearch(T, crop(I, cand), depth + 1)
-      if result.terminate: return result
+VisualSearch(T, viewport, depth):
+  if depth ≥ Dmax or viewport ≤ Smin:   return leaf(T, viewport)    # ground + verify
+  refs   = Planner.position_inference(T, crop)    # <element> <area> <neighbor>
+  voters = [Grounder.ground(r, crop) for r in refs]
+  cands  = dilate(voters, Smin) → score (Eq. 1, σ=0.3) → NMS → sort
+  for c in cands: if (hit := VisualSearch(T, c, depth+1)): return hit
   return None
 ```
 
-| Paper mechanism | Implementation | Paper vs. ours |
+| Mechanism | Implementation | Paper vs. ours |
 |---|---|---|
-| Position inference (Appendix C, Table 7) | Planner receives the viewport image and the paper's prompt; we parse `<element>`, `<area>`, `<neighbor>` tags in order; `"No target"` short-circuits to *not found*. | Paper-derived; prompt verbatim. |
-| Grounding of references | Each tagged phrase is grounded in the current viewport. The grounder returns a point; we form a box around it (default 2% of the viewport side for elements/neighbors; areas are given a larger prior box). | **Ours**: the paper's grounder returns boxes; ours returns points, so the box size is a documented hyperparameter. Dilation dominates it anyway. |
-| Dilation | Expand each box to at least `Smin` (default 1280 px — the paper's leaf size — capped by the viewport), clamped to the image. | Paper-derived; `Rmax` (max ratio) is undefined in the paper, so we cap patches at 50% of the viewport side per level to guarantee narrowing. |
-| Candidate scoring (Eq. 1–2) | `s = exp(−((x′−0.5)² + (y′−0.5)²) / 2σ²)` if a voting box centre lies inside the candidate, else 0; summed over all grounded boxes; σ = 0.3. | Paper-derived, unit-tested. |
-| NMS | Greedy IoU suppression (threshold 0.5) on candidates ordered by score. | Algorithm 1 lists scoring *after* NMS but uses `nms_patches` before it is defined; we interpret as: dilate → score → NMS → sort. |
-| Recursion and termination | Depth-first over sorted candidates, `Dmax = 3`; leaf when the viewport is ≤ `Smin` or at max depth. | Algorithm 1 resets `d ← 0` inside the function; we treat it as the initial call only. |
-| Leaf grounding + result check (Appendix C, Table 8) | Grounder predicts the target in the leaf crop; we draw a red box on the crop and ask the planner the paper's check prompt; JSON verdict `is_target` / `target_elsewhere` / `target_not_found`, optional `new_instruction`. | Paper-derived. `target_elsewhere` continues the search with the rewritten instruction; `target_not_found` prunes the branch. |
+| Position inference (Table 7) | Parse `<element>`, `<area>`, `<neighbor>` in order; "No target" short-circuits | Prompt verbatim |
+| Grounding references | The grounder returns a point; we form a fixed-size voter box around it | **Ours:** the paper's grounder returns boxes; dilation dominates the size anyway |
+| Dilation | Expand to `Smin` = 1280 px (the paper's leaf size), at most 50% of the viewport, kept inside the image | `Rmax` is undefined in the paper; the 50% cap guarantees narrowing |
+| Scoring (Eq. 1–2) | `exp(−((x′−.5)²+(y′−.5)²)/2σ²)` if the voter centre is inside the candidate, summed over voters | Verbatim, unit-tested |
+| NMS | Greedy, IoU 0.5 | Algorithm 1 scores `nms_patches` before defining them; we run dilate → score → NMS → sort |
+| Recursion | Depth-first, `Dmax` = 3, leaf at ≤ 1280 px | Algorithm 1 resets `d ← 0` inside the recursion; we treat that as the initial call only |
+| Leaf check (Table 8) | Red box on the crop; JSON verdict `is_target` / `target_elsewhere` / `target_not_found` | `target_elsewhere` retries with the rewritten instruction; only `is_target` ends the search |
 
-**Coordinates.** Every viewport carries its rectangle in full-screenshot pixel space; all model
-outputs are converted immediately (`grounder 0–1000 → viewport px → screenshot px`). Only
-`geometry.py` converts screenshot pixels to click points (`÷ backing scale`, here 2.0). The
-transformation is unit-tested and verified live by moving the mouse to a grounded point and
-re-capturing.
+**Coordinates.** Every viewport carries its rectangle in screenshot pixels, and model outputs
+are converted immediately (`0–1000 grid → viewport px → screenshot px`). Only `geometry.py`
+maps pixels to click points (÷ backing scale = 2.0). This is unit-tested and verified live.
 
-**Outcomes and budgets.** The engine returns `found` (verified box + click point), `ambiguous`
-(more than one verified match, e.g. two TextEdit aliases), or `not_found`. It never converts
-uncertainty into a click. Budgets bound the worst case: max depth, max planner calls (default 8),
-max grounder calls, and a wall-clock limit (default 90 s). Model confidence is not treated as
-calibrated probability; only the planner's explicit check verdict gates a click.
+**Budgets.** A search is capped on depth, planner calls (10), grounder calls (30) and wall-clock
+time (150 s). Model confidence is never treated as a probability: only the planner's explicit
+verdict permits a click.
 
-## 6. Automation workflow
+## 6. Workflow
 
-A deterministic state machine drives the known task; the grounding engine is called wherever a
-*screen location* is needed. The model is not asked to re-plan the whole task each step.
+A deterministic state machine drives the known task. Grounding is called wherever a *screen
+location* is needed; the model is never asked to re-plan the whole task. Posts are fetched once
+and validated (integer id, non-empty ASCII title and body). Then, for each post:
 
-For each post (ids 1–10, fetched once and validated: integer id, non-empty string title/body):
-
-1. **Pre-check**: TextEdit not running (quit it cleanly if a previous run left it open; never
-   discard unsaved user documents — stop instead). Output path must not already exist, or it is
-   moved to a timestamped backup only with `--overwrite`.
-2. **Ground** the target "TextEdit application icon on the desktop" from a fresh screenshot.
-3. **Launch**: double-click the click point; wait (bounded) until TextEdit is frontmost with an
-   editable untitled document. If TextEdit opens its file browser instead, choose *New Document*.
-4. **Prepare**: switch to plain text; confirm via window state.
-5. **Type** `"Title: {title}\n\n{body}"` once (no blind retries — retyping risks duplicate text).
-6. **Save**: ⌘S, ⌘⇧G to enter `~/Desktop/tjm-project`, type `post_{id}.txt`, confirm; handle
-   "replace?" and ".txt extension?" dialogs by grounding the specific button by description.
-7. **Verify** on disk: file exists, name correct, bytes equal the expected text.
-8. **Quit** TextEdit (⌘Q) and confirm the process exited before the next iteration.
+1. **Pre-check:** TextEdit must not be running and the output file must not exist. If either
+   fails, stop rather than touch the user's data.
+2. **Ground:** uncover the desktop, take a fresh screenshot, and search for "TextEdit
+   application icon on the desktop".
+3. **Launch:** double-click the hit. Within a bounded wait, TextEdit must become frontmost with
+   an empty `Untitled` document.
+4. **Type** the text once. There are no blind retries, because retyping duplicates text.
+5. **Save:** ⌘S, then the filename, then Go to Folder `~/Desktop/tjm-project`, then confirm.
+6. **Verify** on disk: the right name and folder, with bytes equal to the expected text.
+7. **Quit** TextEdit and confirm the process has exited before the next post.
 
 ## 7. Failure handling
 
-| Failure | Detection | Response |
-|---|---|---|
-| Icon moved | — | Normal case: every launch re-grounds from a fresh screenshot. |
-| Icon absent / hidden behind a window | Planner says "No target" or every check returns `target_not_found` | Minimise/hide frontmost windows once (show Desktop), re-search; then stop with a clear error and saved trace. |
-| Two similar icons (e.g. TextEdit + another editor) | Multiple verified matches | Return `ambiguous`; do not click. |
-| Wrong click (opened something else, or nothing) | Frontmost app ≠ TextEdit within timeout | Close what opened if it is ours; re-ground once; then stop. |
-| Unexpected pop-up / dialog | Expected state not reached; screenshot shows a dialog | Ask the planner to describe the dialog; if it is a known-safe dismissal (e.g. "OK" on an informational alert) ground that button by description and click it; stop on anything destructive, permission-related, or unclear. |
-| Save dialog variants, file exists | Planner/grounder on the sheet | Ground buttons by description, never by fixed coordinates. Never overwrite without `--overwrite`. |
-| API failure / malformed model output | HTTP errors, parse failures | Bounded retries with backoff for transient errors; malformed output counts as a failed call, never a guess. |
-| Content mismatch after save | Disk read ≠ expected | Mark the post failed, keep the file for inspection, continue or stop per flag. |
+| Failure | Response |
+|---|---|
+| Icon moved | Normal case: every launch searches again |
+| Icon absent or covered | `not_found` → no click; triage the screen, then search again; stop with a trace after the attempts run out |
+| Wrong thing opened | Frontmost app ≠ TextEdit → close only what we opened, then search again |
+| Unexpected pop-up | The planner describes it and classifies the risk. A safe dismissal from an allowlist is located **by description** with ScreenSeekeR and clicked. Destructive, permission or unclear dialogs → stop |
+| Save-dialog variants, file exists | Never overwrite; buttons are located by description, never by coordinates |
+| API or model errors | Bounded retries; malformed output counts as a failure, never a guess |
+| Content mismatch | Mark the post failed and keep the file for inspection |
 
 ## 8. Testing and evidence
 
-- **Unit tests (CI)**: coordinate transforms, dilation/clamping, Eq. 1 scoring, NMS, recursion
-  termination and budget exhaustion with fake planner/grounder, response parsing, expected-text
-  construction, workflow transitions against a fake desktop.
-- **Replay tests**: recorded screenshots + recorded model responses, run deterministically.
-- **Live tests (opt-in, real Mac)**: icon in top-left / center / bottom-right; icon absent;
-  decoy icons; full ten-post run. Each produces an annotated screenshot and a trace in
-  `artifacts/`; the curated three go to `evidence/` with a manifest (commit, models, config,
-  timings).
-- Reported separately: grounding success, abstentions, wrong clicks, end-to-end completion,
-  latency, model calls. Mocked results are never presented as live results.
+- **Unit tests (CI):** geometry, Eq. 1, NMS, coordinate mapping, output parsing, search
+  termination and budgets with scripted fake models, workflow transitions on a fake desktop.
+- **Live tests (opt-in, real Mac):** icon top-left, centre and bottom-right; icon absent;
+  decoy icons; the full ten-post run.
+- **Evidence:** the curated annotated screenshots go into `evidence/` with a manifest (commit,
+  models, config, timings). Live results and mocked tests are always reported separately.
 
-## 9. Trade-offs and performance
+## 9. Trade-offs and deferred work
 
-- **Latency vs. robustness**: a full ScreenSeekeR search costs a few planner calls (≈ 3–10 s
-  each) and several local grounder calls (≈ 1–3 s each on M2), so a search takes tens of seconds,
-  versus ~2 s for single-shot grounding. That is acceptable for launching an app ten times; it is
-  the cost of a method that generalises to dense professional UIs.
-- **Planned optimisation (only after the baseline works)**: an adaptive fast path — ground the
-  whole screen once, verify with the result-check prompt, and escalate to the full search only if
-  verification fails. Measured against the full search on the same screenshots; kept only if it
-  helps. The full ScreenSeekeR mode remains independently runnable.
-- **Cost**: roughly 3–8 planner calls per launch with downscaled crops; well under a dollar for
-  the full run.
-
-## 10. Deferred improvements
-
-Caching the planner's layout description between iterations; a local planner to remove the
-network dependency; multi-monitor support; batching grounder calls across references; a learned
-calibrator for when to trust the fast path; Windows/Notepad port (only the desktop executor and
-app-specific workflow constants change).
+- **Latency vs. generality.** A full search costs a few planner calls and several local
+  grounder calls, which is tens of seconds compared with seconds for one-shot grounding. That
+  is acceptable for ten launches, and it is the price of a method that holds up on dense
+  professional UIs.
+- **Planned optimisation, only once the baseline works:** ground the full screen once, verify
+  it with the result-check prompt, and fall back to the full search when verification fails.
+  This is measured on the same screenshots and kept only if it pays off.
+- **Deferred:**
+  - an `ambiguous` outcome for several verified matches;
+  - caching the planner's layout description between launches;
+  - a local planner, to remove the network dependency;
+  - multi-monitor support;
+  - a Windows/Notepad port, which needs only a new desktop executor and app constants.

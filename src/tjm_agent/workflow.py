@@ -203,7 +203,7 @@ class PostWorkflow:
             if triage.risk in ("destructive", "permission", "unknown"):
                 raise WorkflowError(f"stopped at {triage.risk} dialog: {triage.description}")
             return False
-        target = f'"{button}" button in the {triage.description}'
+        target = f'"{button}" button in the dialog in front'
         outcome = self.engine.search(shot.image, target)
         name = f"post{result.post_id:02d}_intervention{len(result.interventions)}"
         click_pt = desktop.point_for(*outcome.point_px, shot) if outcome.point_px else None

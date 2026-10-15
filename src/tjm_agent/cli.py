@@ -8,6 +8,7 @@ import os
 import sys
 import time
 from dataclasses import asdict
+from pathlib import Path
 
 from . import config
 
@@ -39,6 +40,11 @@ def cmd_doctor(args, settings) -> int:
           f"check {settings.check_effort}); "
           f"grounder {settings.grounder_repo}")
     print(f"[ok] output dir {settings.output_dir}")
+    items = sorted(p.name for p in (Path.home() / "Desktop").iterdir()
+                   if not p.name.startswith("."))
+    print(f"[info] Desktop items ({len(items)}), all visible in screenshots sent to the planner:")
+    for name in items:
+        print(f"         - {name}")
     return 0 if ok else 1
 
 

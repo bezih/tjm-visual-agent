@@ -1,0 +1,311 @@
+{
+  "commit": "4075b04",
+  "planner": "claude-opus-5-5",
+  "effort": "low",
+  "check_effort": "medium",
+  "grounder": "mlx-community/UI-Venus-1.5-2B-6bit",
+  "search": {
+    "max_depth": 3,
+    "leaf_size": 1280,
+    "patch_cap": 0.5,
+    "voter_size": 96,
+    "mark_size": 120,
+    "sigma": 0.3,
+    "nms_iou": 0.5,
+    "max_refs": 6,
+    "max_candidates": 3,
+    "max_planner_calls": 10,
+    "max_grounder_calls": 30,
+    "time_limit_s": 150.0,
+    "mode": "screenseeker"
+  },
+  "posts_ok": 10,
+  "posts_total": 10,
+  "seconds": 688.7,
+  "posts": [
+    {
+      "post_id": 1,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1716.4,
+            1108.6640000000002
+          ],
+          "click_pt": [
+            858.2,
+            554.3320000000001
+          ],
+          "seconds": 58.1,
+          "planner_calls": 2,
+          "grounder_calls": 6
+        }
+      ],
+      "interventions": [],
+      "seconds": 73.7,
+      "fatal": false
+    },
+    {
+      "post_id": 2,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 2,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1716.4,
+            1108.6640000000002
+          ],
+          "click_pt": [
+            858.2,
+            554.3320000000001
+          ],
+          "seconds": 62.5,
+          "planner_calls": 2,
+          "grounder_calls": 7
+        },
+        {
+          "attempt": 2,
+          "status": "found",
+          "point_px": [
+            1716.82,
+            1106.44
+          ],
+          "click_pt": [
+            858.41,
+            553.22
+          ],
+          "seconds": 49.8,
+          "planner_calls": 2,
+          "grounder_calls": 6
+        }
+      ],
+      "interventions": [
+        {
+          "step": "about to double-click the TextEdit alias icon on the desktop",
+          "description": "No dialog covers the TextEdit icon. Only a small Claude Code notification banner sits in the top-right corner, away from the icon. The TextEdit alias is visible and selected in the middle of the desktop.",
+          "buttons": [],
+          "risk": "none",
+          "button_to_click": null,
+          "action": "stopped"
+        }
+      ],
+      "seconds": 133.7,
+      "fatal": false
+    },
+    {
+      "post_id": 3,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1716.82,
+            1106.44
+          ],
+          "click_pt": [
+            858.41,
+            553.22
+          ],
+          "seconds": 48.1,
+          "planner_calls": 2,
+          "grounder_calls": 6
+        }
+      ],
+      "interventions": [],
+      "seconds": 60.9,
+      "fatal": false
+    },
+    {
+      "post_id": 4,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1718.96,
+            1106.44
+          ],
+          "click_pt": [
+            859.48,
+            553.22
+          ],
+          "seconds": 55.2,
+          "planner_calls": 2,
+          "grounder_calls": 7
+        }
+      ],
+      "interventions": [],
+      "seconds": 69.1,
+      "fatal": false
+    },
+    {
+      "post_id": 5,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1716.4,
+            1108.6640000000002
+          ],
+          "click_pt": [
+            858.2,
+            554.3320000000001
+          ],
+          "seconds": 45.8,
+          "planner_calls": 2,
+          "grounder_calls": 6
+        }
+      ],
+      "interventions": [],
+      "seconds": 58.3,
+      "fatal": false
+    },
+    {
+      "post_id": 6,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1718.96,
+            1108.664
+          ],
+          "click_pt": [
+            859.48,
+            554.332
+          ],
+          "seconds": 38.4,
+          "planner_calls": 2,
+          "grounder_calls": 5
+        }
+      ],
+      "interventions": [],
+      "seconds": 52.0,
+      "fatal": false
+    },
+    {
+      "post_id": 7,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1718.96,
+            1108.664
+          ],
+          "click_pt": [
+            859.48,
+            554.332
+          ],
+          "seconds": 53.5,
+          "planner_calls": 2,
+          "grounder_calls": 7
+        }
+      ],
+      "interventions": [],
+      "seconds": 66.3,
+      "fatal": false
+    },
+    {
+      "post_id": 8,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1716.4,
+            1108.6640000000002
+          ],
+          "click_pt": [
+            858.2,
+            554.3320000000001
+          ],
+          "seconds": 45.4,
+          "planner_calls": 2,
+          "grounder_calls": 6
+        }
+      ],
+      "interventions": [],
+      "seconds": 58.9,
+      "fatal": false
+    },
+    {
+      "post_id": 9,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1718.96,
+            1108.664
+          ],
+          "click_pt": [
+            859.48,
+            554.332
+          ],
+          "seconds": 42.5,
+          "planner_calls": 2,
+          "grounder_calls": 5
+        }
+      ],
+      "interventions": [],
+      "seconds": 55.3,
+      "fatal": false
+    },
+    {
+      "post_id": 10,
+      "ok": true,
+      "reason": "content matches exactly",
+      "launch_attempts": 1,
+      "grounding": [
+        {
+          "attempt": 1,
+          "status": "found",
+          "point_px": [
+            1716.4,
+            1108.6640000000002
+          ],
+          "click_pt": [
+            858.2,
+            554.3320000000001
+          ],
+          "seconds": 47.1,
+          "planner_calls": 2,
+          "grounder_calls": 6
+        }
+      ],
+      "interventions": [],
+      "seconds": 59.8,
+      "fatal": false
+    }
+  ]
+}

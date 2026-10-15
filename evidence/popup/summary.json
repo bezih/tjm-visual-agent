@@ -1,0 +1,50 @@
+{
+  "what": "Live test: scripts/fake_popup.py shows a 'Software Update' alert (Later / Install Now) over the centred TextEdit alias; it stays visible when its app is hidden. Then `tjm-agent run --posts 1` (output to a scratch folder).",
+  "button_log": "Later clicked at 20:59:37",
+  "commit": "4075b04",
+  "result": {
+    "ok": true,
+    "reason": "content matches exactly",
+    "launch_attempts": 2,
+    "grounding": [
+      {
+        "attempt": 1,
+        "status": "not_found",
+        "point_px": null,
+        "click_pt": null,
+        "seconds": 75.7,
+        "planner_calls": 3,
+        "grounder_calls": 8
+      },
+      {
+        "attempt": 2,
+        "status": "found",
+        "point_px": [
+          1718.96,
+          1108.664
+        ],
+        "click_pt": [
+          859.48,
+          554.332
+        ],
+        "seconds": 63.1,
+        "planner_calls": 2,
+        "grounder_calls": 5
+      }
+    ],
+    "interventions": [
+      {
+        "step": "looking for the TextEdit alias icon on the desktop before double-clicking it",
+        "description": "A macOS Software Update dialog says 'macOS 26.4 is available' and asks whether to install now, warning that the Mac will restart. It sits in front of the desktop, which shows no TextEdit alias icon.",
+        "buttons": [
+          "Later",
+          "Install Now"
+        ],
+        "risk": "safe",
+        "button_to_click": "Later",
+        "action": "clicked Later at (888.98, 616.048)"
+      }
+    ],
+    "seconds": 220.9
+  }
+}

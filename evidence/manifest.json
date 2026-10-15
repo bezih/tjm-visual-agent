@@ -1,8 +1,8 @@
 {
   "what": "Real ScreenSeekeR runs on a live macOS desktop (no mocks). `tjm-agent ground` = locate only, no click.",
-  "code": "Grounding code as committed in da28d05 (runs were made on the working tree just before that commit; the only later change before the bottom-right/center runs was show_desktop, which does not affect search).",
+  "code": "The four position/absent searches ran on the grounding code committed in da28d05 (before the location-aware result check added in 4075b04). Images were re-rendered later from the saved raw screenshots and traces with improved annotations (8020b78); no search was re-run for them.",
   "machine": "Apple M2, 8 GB, macOS 26.3, built-in display 1710x1112 pt / 3420x2224 px (scale 2.0)",
-  "planner": "claude-opus-5-5, effort=low, images downscaled to <=1568 px JPEG",
+  "planner": "claude-opus-5-5, effort=low (at da28d05 the result check also used low)",
   "grounder": "mlx-community/UI-Venus-1.5-2B-6bit (local, MLX), inputs downscaled to <=1280 px",
   "search": {
     "max_depth": 3,
@@ -82,5 +82,9 @@
       "planner_calls": 2,
       "grounder_calls": 7
     }
-  ]
+  ],
+  "more": {
+    "popup/": "Live pop-up test on 4075b04: icon covered -> not_found -> triage safe -> 'Later' grounded by label and clicked (fixture log: 'Later clicked') -> icon found -> post saved. See popup/summary.json.",
+    "full_run/": "Final full run on 4075b04: 10/10 posts byte-exact, 11 searches all found, 689 s. Sample traces: post 1, post 2 (both attempts: a notification banner changed the screen before the click, so the agent re-searched), post 10. Full summary.json included."
+  }
 }

@@ -13,10 +13,23 @@ takes a new screenshot and runs a new search, so it never reuses the icon's last
 > TextEdit**, launched from a TextEdit alias on the desktop. See [docs/design.md §2](docs/design.md)
 > for the full mapping and every deviation.
 
-- **Design (Part 1):** [docs/design.md](docs/design.md)
-- **Measured results and failure analysis:** [docs/evaluation.md](docs/evaluation.md)
-- **Evidence:** [evidence/](evidence/) has real annotated detections plus a manifest of
-  model, config and timings.
+- **Design (Part 1):** [docs/design.md](docs/design.md) ([PDF](docs/design.pdf))
+- **Measured results, failures found and fixed, limitations:**
+  [docs/evaluation.md](docs/evaluation.md)
+- **Evidence:** [evidence/](evidence/) has real annotated detections, the pop-up test and the
+  final full run, with a manifest.
+
+**Results (real runs on this Mac):**
+- Two full runs, each with **10/10 posts** saved through the UI and checked byte for byte
+  against the API. Every launch came from a freshly grounded desktop icon.
+- The icon was found at top-left, centre and bottom-right.
+- The agent abstained (no click) when the target was absent.
+- An unexpected "Software Update" pop-up was dismissed with **Later** (never Install Now),
+  the button being found from its label alone.
+- A full search takes about 50 s on an 8 GB M2. The optional adaptive mode takes about 9 s.
+- Live testing found eight failures. One of them was the agent launching TextEdit from the
+  **Dock** while the desktop icon was covered. All eight are documented, fixed and re-tested
+  in the evaluation.
 
 | Top-left | Center | Bottom-right |
 |---|---|---|
@@ -35,6 +48,14 @@ screenshot + "TextEdit application icon on the desktop"
    │        result-check prompt (red box) → is_target / target_elsewhere / target_not_found
    └─ found(point) | not_found | budget_exhausted      (uncertainty never becomes a click)
 ```
+
+The result check also gets a whole-screen thumbnail with the crop outlined, so it can judge
+location words: "on the desktop" versus "in the Dock". This is our addition to the paper's
+crop-only check; see evaluation §4, failure #7.
+
+**Adaptive mode** (`--mode adaptive`, our addition, off by default): ground the whole screen
+once and verify the hit with the same result check. Only if that check fails does the full
+search run. On the comparison set it was as accurate and about 5× faster; see evaluation §3.
 
 The engine (`src/tjm_agent/grounding/`) knows nothing about TextEdit, icons or posts. The same
 call finds `"Save" button in the save sheet` or `"OK" button in the alert`. The workflow uses it
@@ -70,14 +91,22 @@ View › Sort By › None, so the icon stays where it is dropped. Quit TextEdit 
 uv run --locked tjm-agent doctor                     # permissions, display mapping, config
 uv run --locked tjm-agent ground                     # find the TextEdit alias, save annotated trace, no click
 uv run --locked tjm-agent ground --target "Blender application icon on the desktop"   # absent → not_found
+uv run --locked tjm-agent ground --target "Wi-Fi status icon in the menu bar" --hover   # not an icon on the desktop
+uv run --locked tjm-agent ground --mode adaptive     # fast path, falls back to full search
 uv run --locked tjm-agent run --posts 10             # the assignment
 ```
 
 Each run writes raw screenshots, annotated traces (`*_annotated.png`), per-search JSON and a
 `summary.json` to `artifacts/run-*/`. That folder is git-ignored.
 
-Optional settings in `.env`: `PLANNER_MODEL` (default `claude-opus-5-5`), `PLANNER_EFFORT`
-(default `low`), `GROUNDER_REPO`, `OUTPUT_DIR`.
+Optional settings in `.env` (see `.env.example`):
+- `PLANNER_MODEL`: default `claude-opus-5-5`.
+- `PLANNER_EFFORT`: default `low`.
+- `CHECK_EFFORT`: default `medium`. This is the result check, which gates every click.
+- `GROUNDER_REPO`.
+- `OUTPUT_DIR`.
+
+`doctor` lists every Desktop item, because they all appear in screenshots sent to the planner.
 
 ## Safety behaviour
 
@@ -89,8 +118,9 @@ Optional settings in `.env`: `PLANNER_MODEL` (default `claude-opus-5-5`), `PLANN
   restoration.
 - It sends no keyboard shortcuts to uncover the desktop. Apps are hidden through `NSRunningApplication`,
   and Finder windows are minimised through Accessibility.
-- It won't click if a window appeared between the screenshot and the click, and it re-grounds
-  instead.
+- It won't click if a window appeared between the screenshot and the click, or if a window
+  covers the grounded point. It searches again instead.
+- A desktop-icon hit inside the Dock or menu bar area is never clicked.
 - It reads each text field back through Accessibility before pressing Return.
 - Unexpected dialogs can only be dismissed with an allowlisted safe button. A destructive,
   permission or unclear dialog stops the run.
@@ -122,4 +152,6 @@ src/tjm_agent/
   posts.py / verification.py  API data and byte-exact checks of what the UI saved
   trace.py / cli.py           annotated traces; doctor | ground | run
 scripts/demo_desktop.py       temporarily stash and restore Desktop items for a clean demo
+scripts/fake_popup.py         live-test fixture: "Software Update" alert that survives app hiding
+scripts/compare_modes.py      offline ScreenSeekeR vs adaptive on the same saved screenshots
 ```

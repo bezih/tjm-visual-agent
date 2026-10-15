@@ -1,7 +1,7 @@
 {
   "what": "Live test: scripts/fake_popup.py shows a 'Software Update' alert (Later / Install Now) over the centred TextEdit alias; it stays visible when its app is hidden. Then `tjm-agent run --posts 1` (output to a scratch folder).",
   "button_log": "Later clicked at 20:59:37",
-  "commit": "4075b04",
+  "commit": "9b952a3",
   "result": {
     "ok": true,
     "reason": "content matches exactly",

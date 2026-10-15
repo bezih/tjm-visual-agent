@@ -172,6 +172,12 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--mode", choices=["screenseeker", "adaptive"], default="screenseeker")
     args = p.parse_args(argv)
     settings = config.load()
+    if args.command in ("ground", "run") and not os.getenv("ANTHROPIC_API_KEY"):
+        print(
+            f"ANTHROPIC_API_KEY is not set. Copy .env.example to .env in "
+            f"{config.PROJECT_ROOT} and add your key (see README > Setup)."
+        )
+        return 1
     if getattr(args, "mode", None):
         settings = dataclasses.replace(
             settings, search=dataclasses.replace(settings.search, mode=args.mode)

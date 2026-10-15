@@ -150,16 +150,24 @@ def wait_until(predicate, timeout: float, poll: float = 0.25) -> bool:
     return predicate()
 
 
+# Normal windows (0), floating panels (3), modal alerts (8), utility windows (19) and
+# notification banners (<24) can cover desktop icons. The Dock (20) and the menu bar /
+# status items (24+) are permanent screen furniture, not obstructions.
+_MAX_OBSTRUCTING_LAYER = 23
+_SYSTEM_CHROME = {"Dock", "Window Server"}
+
+
 def _visible_window_info() -> list[dict]:
     import Quartz
 
     opts = Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements
     return [w for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
-            if w.get("kCGWindowLayer") == 0]
+            if 0 <= w.get("kCGWindowLayer", -1) <= _MAX_OBSTRUCTING_LAYER
+            and w.get("kCGWindowOwnerName") not in _SYSTEM_CHROME]
 
 
 def visible_windows() -> list[tuple[str, tuple[float, float, float, float]]]:
-    """Normal (layer-0) windows on the current Space: (owner, (x, y, w, h)) in points."""
+    """Windows that could cover the desktop on the current Space: (owner, (x, y, w, h)) pt."""
     out = []
     for w in _visible_window_info():
         b = w["kCGWindowBounds"]

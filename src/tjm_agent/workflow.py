@@ -43,6 +43,16 @@ class WorkflowError(RuntimeError):
     pass
 
 
+def safe_to_click(point, windows_at_capture, windows_now) -> bool:
+    """A grounded point is only clicked if the screen is what we grounded on: the same
+    windows as at capture time, and none of them covers the point."""
+    if windows_now != windows_at_capture:
+        return False
+    x, y = point
+    return not any(wx <= x <= wx + ww and wy <= y <= wy + wh
+                   for _, (wx, wy, ww, wh) in windows_now)
+
+
 @dataclass
 class PostResult:
     post_id: int
@@ -107,11 +117,12 @@ class PostWorkflow:
 
     # ---- launch -----------------------------------------------------------------------
 
-    def ground_and_launch(self, post: Post, result: PostResult, max_attempts: int = 2) -> None:
+    def ground_and_launch(self, post: Post, result: PostResult, max_attempts: int = 3) -> None:
         for attempt in range(1, max_attempts + 1):
             result.launch_attempts = attempt
             if not desktop.show_desktop():
-                self.log("  warning: some windows still visible over the desktop")
+                self.log("  warning: something is still on screen over the desktop")
+            windows_at_capture = desktop.visible_windows()
             shot = desktop.capture()  # fresh screenshot before every launch
             outcome = self.engine.search(shot.image, self.icon_target)
             click_pt = desktop.point_for(*outcome.point_px, shot) if outcome.point_px else None
@@ -126,11 +137,15 @@ class PostWorkflow:
                      f"({outcome.seconds:.1f}s, planner {outcome.planner_calls}, "
                      f"grounder {outcome.grounder_calls})")
             if outcome.status != "found":
-                continue  # never click on uncertainty; re-capture and search again
+                # Never click on uncertainty. Something may be covering the icon (an alert,
+                # a pop-up): triage it, dismiss it only via a safe button, then search again.
+                if attempt < max_attempts:
+                    self.intervene(result, step="looking for the TextEdit alias icon on the "
+                                   "desktop before double-clicking it",
+                                   expected="the desktop with the TextEdit alias icon visible")
+                continue
 
-            # The screen may have changed since the screenshot (another app took focus).
-            # Only click if the desktop is still what we grounded on.
-            if desktop.visible_windows():
+            if not safe_to_click(click_pt, windows_at_capture, desktop.visible_windows()):
                 self.log("  screen changed since screenshot; re-grounding instead of clicking")
                 continue
             desktop.double_click(*click_pt)

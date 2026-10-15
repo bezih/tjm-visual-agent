@@ -288,3 +288,51 @@ def desktop_area() -> tuple[float, float, float, float]:
     full, vis = screen.frame(), screen.visibleFrame()
     top = full.size.height - (vis.origin.y + vis.size.height)  # Cocoa origin is bottom-left
     return (vis.origin.x, top, vis.size.width, vis.size.height)
+
+
+def dock_rect() -> tuple[float, float, float, float] | None:
+    """(x, y, w, h) in top-left points of the Dock's icon strip, via Accessibility.
+
+    The Dock reports the strip's position with y at its bottom edge (y=1112 on a 1112-pt
+    screen), so the rectangle is clamped back inside the screen.
+    """
+    from AppKit import NSRunningApplication, NSScreen
+    from ApplicationServices import (
+        AXUIElementCopyAttributeValue,
+        AXUIElementCreateApplication,
+        AXValueGetValue,
+        kAXValueCGPointType,
+        kAXValueCGSizeType,
+    )
+
+    apps = NSRunningApplication.runningApplicationsWithBundleIdentifier_("com.apple.dock")
+    if not apps:
+        return None
+    _e, kids = AXUIElementCopyAttributeValue(
+        AXUIElementCreateApplication(apps[0].processIdentifier()), "AXChildren", None)
+    for kid in kids or []:
+        _e, role = AXUIElementCopyAttributeValue(kid, "AXRole", None)
+        if role != "AXList":
+            continue
+        _e, pos = AXUIElementCopyAttributeValue(kid, "AXPosition", None)
+        _e, size = AXUIElementCopyAttributeValue(kid, "AXSize", None)
+        p = AXValueGetValue(pos, kAXValueCGPointType, None)[1]
+        s = AXValueGetValue(size, kAXValueCGSizeType, None)[1]
+        frame = NSScreen.mainScreen().frame()
+        x = min(max(p.x, 0), frame.size.width - s.width)
+        y = min(max(p.y, 0), frame.size.height - s.height)
+        return (x, y, s.width, s.height)
+    return None
+
+
+def on_desktop_surface(x_pt: float, y_pt: float) -> bool:
+    """False if the point is in the menu bar or on the Dock's icon strip (where a desktop icon
+    cannot be). Falls back to the conservative visible frame if the Dock cannot be read."""
+    vx, vy, vw, vh = desktop_area()
+    if y_pt < vy:  # menu bar
+        return False
+    dock = dock_rect()
+    if dock is None:
+        return vx <= x_pt <= vx + vw and vy <= y_pt <= vy + vh
+    dx, dy, dw, dh = dock
+    return not (dx <= x_pt <= dx + dw and dy <= y_pt <= dy + dh)

@@ -62,8 +62,10 @@ class FakeDesktop:
     def focused_field(self, name):
         return self.field
 
-    def desktop_area(self):
-        return (0.0, 20.0, 1710.0, 1000.0)  # menu bar above, Dock below y=1020
+    def on_desktop_surface(self, x, y):
+        menu_bar = y < 20
+        dock = 46 <= x <= 1664 and 1036 <= y <= 1112  # Dock strip, as read via AX
+        return not (menu_bar or dock)
 
     # actions
     def double_click(self, x, y):
@@ -248,3 +250,10 @@ def test_hit_in_dock_is_never_double_clicked(fake, tmp_path):
     engine = FakeEngine([found(2630, 2142), found(200, 100)])  # px → (1315, 1071) pt = Dock
     _flow(engine, tmp_path).ground_and_launch(POST, PostResult(1, False, ""))
     assert [a for a in fake.actions if a[0] == "double_click"] == [("double_click", 100, 50)]
+
+
+def test_icon_beside_the_dock_is_still_clickable(fake, tmp_path):
+    # Live case: alias dragged to the bottom-left corner, left of the Dock strip
+    engine = FakeEngine([found(40, 2133)])  # px → (20, 1066) pt
+    _flow(engine, tmp_path).ground_and_launch(POST, PostResult(1, False, ""))
+    assert fake.actions == [("double_click", 20, 1066.5)]

@@ -103,6 +103,7 @@ they were found.
 | 6 | A test drag landed in the terminal | The screen changed between the screenshot and the action | Click only if the windows are unchanged since capture and none covers the point |
 | 7 | **Wrong launch:** with a pop-up over the alias, TextEdit was launched from the **Dock** | The planner proposed the Dock's recent-apps TextEdit, and the paper's crop-only result check accepted it for "TextEdit icon on the desktop" | (a) The check also sees a whole-screen thumbnail with the crop outlined, so location words can be judged; (b) the check runs at effort `medium`; (c) a desktop-icon hit inside the Dock or menu bar is never clicked |
 | 8 | Decoy "Terminal icon on the desktop" accepted (offline) | Same as #7. At effort `low` the check once said "in the Dock, not on the desktop" and still returned `is_target` | Same fixes. After them, 12/12 correct with 0 wrong clicks (§3) |
+| 9 | Icon dragged into the bottom-left corner, beside the Dock: found and verified, but `run` would have refused to click | Fix #7(c) treated the whole bottom strip of the screen (`NSScreen.visibleFrame`) as "Dock" | The guard uses the Dock's real icon strip, read via Accessibility (x 46–1664, y 1036–1112 pt here). Found during live testing |
 
 Failure #7 matters most. Without the fix the workflow reported success, because TextEdit did
 launch, even though the requirement (launch via the desktop icon) was violated. Process-state

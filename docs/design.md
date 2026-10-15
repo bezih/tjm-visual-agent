@@ -1,161 +1,167 @@
-# Design: ScreenSeekeR Visual Grounding for Desktop Automation
+# Design: Finding Desktop Icons with ScreenSeekeR
 
 *TJM Labs take-home, Part 1. Results from building and testing are in
 [evaluation.md](evaluation.md).*
 
-## 1. Goal and success criteria
+## 1. What I'm building and how I'll know it works
 
-The goal is a Python application that finds a desktop icon from a screenshot alone, given only
-a natural-language description, and double-clicks it to launch the editor. Through the editor's
-UI it then writes the first ten JSONPlaceholder posts to `Desktop/tjm-project/post_{id}.txt`,
-grounding the icon again from a fresh screenshot before every launch. The grounding engine is
-the focus. It implements **ScreenSeekeR** (Li et al., *ScreenSpot-Pro*, 2025: §4.2,
-Algorithm 1, Appendix C) and is target-agnostic:
-`(screenshot, "description of a UI element") → found(point) | not_found`.
+The program has to find the Notepad icon on the desktop wherever it's been moved, open it, and
+save ten blog posts from JSONPlaceholder as `post_1.txt` to `post_10.txt` in
+`Desktop/tjm-project`. Before every launch it takes a new screenshot and finds the icon again
+from scratch.
 
-**Success means:**
+The part I care most about is finding things on screen. I'm building that as its own engine,
+based on **ScreenSeekeR** from the ScreenSpot-Pro paper (Section 4.2, Algorithm 1, Appendix C).
+You give it a screenshot and a plain-English description, and it either returns the
+**centre (x, y) to click** or says it couldn't find it. It doesn't know anything about Notepad or blog posts, so the same
+engine should work for any icon or button.
 
-1. Ten files whose bytes equal `"Title: {title}\n\n{body}"` for the first ten API posts.
-2. Every launch is preceded by a fresh screenshot and a full search; no coordinates are reused.
-3. The icon is found wherever a person drags it, at minimum top-left, centre and bottom-right.
-   The agent **declines to click** when the icon is absent or a hit cannot be verified.
-4. Every search leaves an inspectable trace: planner output, candidates, crops and timings.
+**It works if:**
 
-## 2. Assumptions: the macOS adaptation
+1. All ten files exist and match `"Title: {title}\n\n{body}"` exactly.
+2. Every launch starts from a fresh screenshot and a new search, with no reused coordinates.
+3. It finds the icon wherever someone drags it (at least top-left, centre and bottom-right),
+   and **it doesn't click** when the icon isn't there or it can't confirm what it found.
+4. Every search leaves a trace I can look at afterwards.
+5. The whole task runs from one command, so in the interview you can move the icon and just
+   run `uv run tjm-agent run`.
 
-The brief specifies Windows 10/11 at 1920×1080 with Notepad. With permission, I am building on
-**macOS (Apple M2, 8 GB, Retina)**:
+## 2. My setup: macOS instead of Windows
 
-| Windows (brief) | macOS (this build) | Note |
+The brief says Windows and Notepad at 1920×1080. I got permission to use my Mac (Apple M2,
+8 GB, Retina screen), so this is what changes:
+
+| Brief (Windows) | My version (macOS) | Why it's equivalent |
 |---|---|---|
-| Notepad desktop shortcut | **TextEdit alias** on the desktop | Same role: a plain-text editor launched from a desktop icon |
-| 1920×1080 | 3420×2224 px screenshot, 1710×1112 pt click space | Harder: pixels and click points differ by 2×, so coordinate mapping must be explicit |
-| Ctrl+S / Save dialog | ⌘S / save sheet | Filename and folder are entered through the dialog |
-| Close Notepad | Quit TextEdit | Forces the next launch to go through the icon again |
+| Notepad shortcut on the desktop | **TextEdit alias** on the desktop | Same idea: a plain-text editor opened from a desktop icon |
+| 1920×1080 | Screenshot is 3420×2224 pixels, but clicks use 1710×1112 points | Actually harder: I have to convert between the two (2×) correctly |
+| Ctrl+S, save dialog | ⌘S, save sheet | Same: type the filename and folder into the dialog |
+| Close Notepad | Quit TextEdit | Forces the next post to find the icon again |
 
-Other ground rules:
+Some rules I'm holding myself to:
 
-- The app is found only from screenshots: no Accessibility lookups, Spotlight, `open -a` or
-  stored icon templates.
-- Reading the saved file back from disk is allowed, but only to *verify* the result.
-- TextEdit defaults to rich text and rewrites typed text (smart quotes, auto-capitalisation),
-  so plain-text output must be enforced and checked byte for byte.
-- The agent needs Screen Recording and Accessibility permissions. A `doctor` command checks
-  them before anything runs.
+- I find the app **only from screenshots**: no Spotlight, no `open -a`, no saved picture of the
+  icon, no accessibility shortcuts.
+- Files are created by typing and saving in the app. Reading them back from disk is fine, but
+  only to *check* the result.
+- TextEdit likes to auto-correct and auto-capitalise, and to save as rich text. I have to make
+  sure it saves exactly what I typed, as plain text, and check it byte for byte.
+- macOS needs Screen Recording and Accessibility permissions. A `doctor` command checks these
+  before anything runs.
 
-## 3. Why ScreenSeekeR
+## 3. Why ScreenSeekeR and not something simpler
 
-The brief asks for a method that works "for any icon or button even if we don't have the
-exact image or text beforehand" and that copes with unexpected pop-ups. That rules out the
-usual primary methods:
+The brief asks for something that works "for any icon or button even if we don't have the
+exact image or text beforehand" and that can deal with surprise pop-ups. That rules out the
+usual shortcuts:
 
-- **Template matching** needs the exact image. It breaks with icon size, theme, Retina
-  scaling and selection highlights.
-- **OCR** fails on unlabelled icons and buttons.
-- **Single-shot VLM grounding** generalises, but collapses on large, dense screens. That is
-  ScreenSpot-Pro's central finding: the best model scored 18.9% when targets covered about
-  0.07% of the screen.
+- **Matching a saved picture of the icon** breaks as soon as the size, theme or highlight
+  changes, and it can't find anything it hasn't seen before.
+- **Reading text on screen (OCR)** doesn't help with icons and buttons that have no label.
+- **Asking one AI model "where is it?"** works on simple screens but falls apart on big, busy
+  ones. That's the main finding of the paper: the best model found only 18.9% of targets.
 
-ScreenSeekeR narrows the search the way a person does. A strong multimodal **planner** reasons
-about where the target probably is ("in the desktop icon column, near other aliases"; "in the
-dialog's button row, next to *Save*"). A specialist **grounder** localises those references,
-and the search recurses into the most promising crop until it finds a hit it can verify.
-Without any training, this lifts OS-Atlas-7B from 18.9% to 48.1%. A desktop icon is an easy
-case, and the brief says so. The point is that the same engine also finds a "Cancel" button
-in a pop-up it has never seen.
+ScreenSeekeR searches the way a person would. A strong AI model (the **planner**) looks at the
+screen and reasons about where the target probably is, and what should be next to it: "it's in
+the column of desktop icons, near those folders." A smaller model that's trained on screens
+(the **grounder**) pinpoints those things. The search then zooms into the most promising area,
+and the planner double-checks the result before anything gets clicked. In the paper this took
+a specialist model from 18.9% to 48.1%, with no extra training.
 
-## 4. Models
+Finding a desktop icon is the easy case, and the brief says so. The point is that the same
+engine can also find a "Cancel" button in a pop-up it has never seen.
 
-- **Planner (paper: GPT-4o):** Claude Opus 5.5 via API. It runs position inference and result
-  checking using the paper's prompts verbatim; any strong multimodal model can fill this role.
-- **Grounder (paper: OS-Atlas-7B):** UI-Venus-1.5-2B, 6-bit MLX, running locally. A 7B model
-  does not fit comfortably in 8 GB. UI-Venus is a GUI-grounding specialist, scoring 57.7% on
-  ScreenSpot-Pro on its own per its model card, and it can refuse by answering `[-1,-1]`.
+## 4. Which models
 
-Both models sit behind two small interfaces, and only `grounding/backends.py` imports a model
-SDK. Screenshots and crops are sent to Anthropic for planning and checking, so the demo uses a
-cleared desktop.
+- **Planner:** Claude, through the Anthropic API. The paper used GPT-4o; any strong model that
+  can read screenshots fits this role. I use the paper's prompts word for word.
+- **Grounder:** UI-Venus-1.5-2B, running locally on my Mac. The paper used OS-Atlas-7B, but a
+  7B model doesn't fit well in 8 GB of memory. UI-Venus is small, trained specifically for
+  finding things on screens (57.7% on ScreenSpot-Pro by itself), and it can say "not here".
 
-## 5. Grounding engine: paper → code
+Only one file talks to the models, so either one can be swapped out later. Screenshots go to
+Anthropic for the planning step, so I'll run the demo on a cleaned-up desktop.
+
+## 5. How the search works, mapped to the paper
 
 ```
-VisualSearch(T, viewport, depth):
-  if depth ≥ Dmax or viewport ≤ Smin:   return leaf(T, viewport)    # ground + verify
-  refs   = Planner.position_inference(T, crop)    # <element> <area> <neighbor>
-  voters = [Grounder.ground(r, crop) for r in refs]
-  cands  = dilate(voters, Smin) → score (Eq. 1, σ=0.3) → NMS → sort
-  for c in cands: if (hit := VisualSearch(T, c, depth+1)): return hit
-  return None
+Search(target, area, depth):
+  if the area is small enough or we're 3 levels deep:  pinpoint the target, then verify it
+  plan    = Planner: where is it likely to be, and what's nearby?
+  points  = Grounder: locate each thing the planner mentioned
+  areas   = turn each point into a zoom area, score it (paper's formula), drop overlaps, sort
+  for each area, best first: Search(target, that area, depth + 1); stop when one is verified
 ```
 
-| Mechanism | Implementation | Paper vs. ours |
+| Step | What I do | Same as the paper? |
 |---|---|---|
-| Position inference (Table 7) | Parse `<element>`, `<area>`, `<neighbor>` in order; "No target" short-circuits | Prompt verbatim |
-| Grounding references | The grounder returns a point; we form a fixed-size voter box around it | **Ours:** the paper's grounder returns boxes; dilation dominates the size anyway |
-| Dilation | Expand to `Smin` = 1280 px (the paper's leaf size), at most 50% of the viewport, kept inside the image | `Rmax` is undefined in the paper; the 50% cap guarantees narrowing |
-| Scoring (Eq. 1–2) | `exp(−((x′−.5)²+(y′−.5)²)/2σ²)` if the voter centre is inside the candidate, summed over voters | Verbatim, unit-tested |
-| NMS | Greedy, IoU 0.5 | Algorithm 1 scores `nms_patches` before defining them; we run dilate → score → NMS → sort |
-| Recursion | Depth-first, `Dmax` = 3, leaf at ≤ 1280 px | Algorithm 1 resets `d ← 0` inside the recursion; we treat that as the initial call only |
-| Leaf check (Table 8) | Red box on the crop; JSON verdict `is_target` / `target_elsewhere` / `target_not_found` | `target_elsewhere` retries with the rewritten instruction; only `is_target` ends the search |
+| Plan (Table 7 prompt) | Read the `<element>`, `<area>` and `<neighbor>` tags from the planner's answer | Prompt used word for word |
+| Locate references | The grounder returns a point, and I draw a small box around it | **My change:** the paper's grounder returns boxes, mine returns points |
+| Expand into zoom areas | Grow each box to about 1280 px so there's context, at most half the current view, kept on screen | The paper doesn't give the max size, so I picked half to make sure it always zooms in |
+| Score (formula 1–2) | Areas with more located points near their centre score higher (σ = 0.3) | Same formula, with unit tests |
+| Remove overlaps | Standard non-max suppression (overlap 0.5) | The paper's pseudocode lists the steps in an order that doesn't quite work; I do expand → score → remove overlaps → sort |
+| Recurse | Depth-first, at most 3 levels | The pseudocode resets the depth counter inside the loop; I read that as a typo |
+| Verify (Table 8 prompt) | Draw a red box on the guess and ask the planner: target, elsewhere, or not found? | Same. "Elsewhere" retries with the planner's rewritten description; only "target" ends the search |
 
-**Coordinates.** Every viewport carries its rectangle in screenshot pixels, and model outputs
-are converted immediately (`0–1000 grid → viewport px → screenshot px`). Only `geometry.py`
-maps pixels to click points (÷ backing scale = 2.0). This is unit-tested and verified live.
+**Coordinates.** I keep everything in screenshot pixels and convert to click points in one
+place only (divide by 2 on this screen). This is easy to get wrong, so it has its own tests.
 
-**Budgets.** A search is capped on depth, planner calls (10), grounder calls (30) and wall-clock
-time (150 s). Model confidence is never treated as a probability: only the planner's explicit
-verdict permits a click.
+**Limits.** Each search has a cap on depth, AI calls and total time. I don't trust a model's
+own confidence score. Only the planner's explicit "yes, that's it" allows a click.
 
-## 6. Workflow
+## 6. The workflow
 
-A deterministic state machine drives the known task. Grounding is called wherever a *screen
-location* is needed; the model is never asked to re-plan the whole task. Posts are fetched once
-and validated (integer id, non-empty ASCII title and body). Then, for each post:
+The steps for saving a post are always the same, so a plain step-by-step program runs them. AI
+is only used where I need to *find something on screen*. I fetch the posts once and check they
+look right, then for each post:
 
-1. **Pre-check:** TextEdit must not be running and the output file must not exist. If either
-   fails, stop rather than touch the user's data.
-2. **Ground:** uncover the desktop, take a fresh screenshot, and search for "TextEdit
+1. **Pre-check:** TextEdit is closed and the output file doesn't exist yet. If not, stop. I
+   won't touch anyone's open documents or overwrite files.
+2. **Find the icon:** clear the desktop, take a fresh screenshot, search for "TextEdit
    application icon on the desktop".
-3. **Launch:** double-click the hit. Within a bounded wait, TextEdit must become frontmost with
-   an empty `Untitled` document.
-4. **Type** the text once. There are no blind retries, because retyping duplicates text.
-5. **Save:** ⌘S, then the filename, then Go to Folder `~/Desktop/tjm-project`, then confirm.
-6. **Verify** on disk: the right name and folder, with bytes equal to the expected text.
-7. **Quit** TextEdit and confirm the process has exited before the next post.
+3. **Launch:** double-click it, then confirm TextEdit actually opened with a new, empty
+   document.
+4. **Type** the post once. No blind retyping, since that could duplicate text.
+5. **Save:** ⌘S, then the filename, then go to `~/Desktop/tjm-project`, then confirm.
+6. **Check** the file on disk: right name, right folder, exact content.
+7. **Quit** TextEdit and make sure it closed before the next post.
 
-## 7. Failure handling
+## 7. When things go wrong
 
-| Failure | Response |
+| Problem | What it does |
 |---|---|
 | Icon moved | Normal case: every launch searches again |
-| Icon absent or covered | `not_found` → no click; triage the screen, then search again; stop with a trace after the attempts run out |
-| Wrong thing opened | Frontmost app ≠ TextEdit → close only what we opened, then search again |
-| Unexpected pop-up | The planner describes it and classifies the risk. A safe dismissal from an allowlist is located **by description** with ScreenSeekeR and clicked. Destructive, permission or unclear dialogs → stop |
-| Save-dialog variants, file exists | Never overwrite; buttons are located by description, never by coordinates |
-| API or model errors | Bounded retries; malformed output counts as a failure, never a guess |
-| Content mismatch | Mark the post failed and keep the file for inspection |
+| Icon missing or covered | "Not found" means no click. It checks whether something is covering the icon, then tries again. After the allowed attempts it stops and saves what it saw |
+| Wrong thing opened | If TextEdit isn't the app that opened, it closes only what it opened and searches again |
+| Surprise pop-up | The planner describes the pop-up and how risky it is. If there's a safe button from an approved list, the engine finds it **by its label** and clicks it. Anything risky, permission-related or unclear: stop |
+| Save dialog issues, or the file already exists | Never overwrite. Buttons are found by description, never by fixed coordinates |
+| AI or network errors | A few retries. A garbled answer counts as a failure, never as a guess |
+| Saved text doesn't match | Mark the post failed and keep the file so I can look at it |
 
-## 8. Testing and evidence
+## 8. Testing and proof
 
-- **Unit tests (CI):** geometry, Eq. 1, NMS, coordinate mapping, output parsing, search
-  termination and budgets with scripted fake models, workflow transitions on a fake desktop.
-- **Live tests (opt-in, real Mac):** icon top-left, centre and bottom-right; icon absent;
-  decoy icons; the full ten-post run.
-- **Evidence:** the curated annotated screenshots go into `evidence/` with a manifest (commit,
-  models, config, timings). Live results and mocked tests are always reported separately.
+- **Automated tests** (run on every push): coordinate maths, the scoring formula, the search
+  logic using fake models, and the workflow rules using a fake desktop.
+- **Live tests on my Mac:** icon top-left, centre and bottom-right; icon missing; look-alike
+  icons; the full ten-post run.
+- **Evidence:** annotated screenshots in `evidence/`, with a note of which code, models and
+  settings produced them. I'll keep live results and fake-model tests clearly separate.
 
-## 9. Trade-offs and deferred work
+## 9. Trade-offs and what I'd do later
 
-- **Latency vs. generality.** A full search costs a few planner calls and several local
-  grounder calls, which is tens of seconds compared with seconds for one-shot grounding. That
-  is acceptable for ten launches, and it is the price of a method that holds up on dense
-  professional UIs.
-- **Planned optimisation, only once the baseline works:** ground the full screen once, verify
-  it with the result-check prompt, and fall back to the full search when verification fails.
-  This is measured on the same screenshots and kept only if it pays off.
-- **Deferred:**
-  - an `ambiguous` outcome for several verified matches;
-  - caching the planner's layout description between launches;
-  - a local planner, to remove the network dependency;
-  - multi-monitor support;
-  - a Windows/Notepad port, which needs only a new desktop executor and app constants.
+- **Speed vs. robustness.** A full search makes a few planner calls and several grounder calls,
+  so it takes tens of seconds instead of a couple. For ten launches that's fine, and it's the
+  price of a method that holds up on busy professional screens.
+- **Possible speed-up, only once the basics work:** try one direct guess first, verify it with
+  the paper's own check, and fall back to the full search if the check fails. I'd measure both
+  on the same screenshots and only keep it if it actually helps.
+- **Bonus challenges.** Because nothing is matched against a saved image, different icon
+  sizes and light or dark themes *should* just work, since the models see the icon the way a
+  person does. I'll test them if there's time rather than assume. For several similar icons,
+  the planner's neighbours and the verify step are what pick the right one.
+- **Later:**
+  - handle two matching icons (say "ambiguous" instead of picking one);
+  - remember the screen layout between launches;
+  - run the planner locally so there's no network dependency;
+  - support multiple monitors;
+  - port to Windows/Notepad, which would only need new screen and mouse code.

@@ -30,6 +30,9 @@ takes a new screenshot and runs a new search, so it never reuses the icon's last
   when the target is present.
 - Offline comparison on the same screenshots: 12/12 correct, 0 wrong clicks, including a
   Dock decoy that fooled the system before the fix.
+- **Bonus challenges, live: 5/5.** It picked TextEdit among 4 lookalike app icons, worked at
+  32 px and 128 px icon sizes, and handled light mode (a white icon on a white wallpaper) and
+  dark mode.
 - Live testing found eight failures. One of them was the agent launching TextEdit from the
   **Dock** while the desktop icon was covered. All eight are documented, fixed and re-tested
   in the evaluation.
@@ -160,4 +163,5 @@ src/tjm_agent/
 scripts/demo_desktop.py       temporarily stash and restore Desktop items for a clean demo
 scripts/fake_popup.py         live-test fixture: "Software Update" alert that survives app hiding
 scripts/compare_modes.py      offline ScreenSeekeR vs adaptive on the same saved screenshots
+scripts/bonus_matrix.py       live bonus tests: lookalike icons, icon sizes, light/dark (restores settings)
 ```

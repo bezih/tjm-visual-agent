@@ -1,0 +1,173 @@
+{
+  "traces": "artifacts/compare-20261014-211308",
+  "rows": [
+    {
+      "mode": "screenseeker",
+      "case": "top_left",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        221.44,
+        233.51999999999998
+      ],
+      "seconds": 52.5,
+      "planner_calls": 2,
+      "grounder_calls": 7
+    },
+    {
+      "mode": "screenseeker",
+      "case": "bottom_right",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        3311.2,
+        1987.1440000000002
+      ],
+      "seconds": 73.4,
+      "planner_calls": 3,
+      "grounder_calls": 8
+    },
+    {
+      "mode": "screenseeker",
+      "case": "center",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        1718.96,
+        1108.664
+      ],
+      "seconds": 41.0,
+      "planner_calls": 2,
+      "grounder_calls": 6
+    },
+    {
+      "mode": "screenseeker",
+      "case": "absent_blender",
+      "target": "Blender application icon on the desktop",
+      "status": "not_found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": null,
+      "seconds": 2.8,
+      "planner_calls": 1,
+      "grounder_calls": 0
+    },
+    {
+      "mode": "screenseeker",
+      "case": "decoy_dock_terminal",
+      "target": "Terminal application icon on the desktop",
+      "status": "not_found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": null,
+      "seconds": 63.8,
+      "planner_calls": 3,
+      "grounder_calls": 8
+    },
+    {
+      "mode": "screenseeker",
+      "case": "menubar_wifi",
+      "target": "Wi-Fi status icon in the menu bar",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        2865.76,
+        37.808
+      ],
+      "seconds": 51.2,
+      "planner_calls": 2,
+      "grounder_calls": 7
+    },
+    {
+      "mode": "adaptive",
+      "case": "top_left",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        222.3,
+        244.64000000000001
+      ],
+      "seconds": 11.6,
+      "planner_calls": 1,
+      "grounder_calls": 1
+    },
+    {
+      "mode": "adaptive",
+      "case": "bottom_right",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        3303.72,
+        1994.928
+      ],
+      "seconds": 11.9,
+      "planner_calls": 1,
+      "grounder_calls": 1
+    },
+    {
+      "mode": "adaptive",
+      "case": "center",
+      "target": "TextEdit application icon on the desktop",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        1710.0,
+        1112.0
+      ],
+      "seconds": 12.5,
+      "planner_calls": 1,
+      "grounder_calls": 1
+    },
+    {
+      "mode": "adaptive",
+      "case": "absent_blender",
+      "target": "Blender application icon on the desktop",
+      "status": "not_found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": null,
+      "seconds": 71.9,
+      "planner_calls": 3,
+      "grounder_calls": 9
+    },
+    {
+      "mode": "adaptive",
+      "case": "decoy_dock_terminal",
+      "target": "Terminal application icon on the desktop",
+      "status": "not_found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": null,
+      "seconds": 74.9,
+      "planner_calls": 3,
+      "grounder_calls": 8
+    },
+    {
+      "mode": "adaptive",
+      "case": "menubar_wifi",
+      "target": "Wi-Fi status icon in the menu bar",
+      "status": "found",
+      "correct": true,
+      "wrong_click": false,
+      "point_px": [
+        2872.7999999999997,
+        37.808
+      ],
+      "seconds": 13.9,
+      "planner_calls": 1,
+      "grounder_calls": 1
+    }
+  ]
+}

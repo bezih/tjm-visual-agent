@@ -58,7 +58,35 @@ rewrite mechanism working as intended (see `evidence/icon_bottom_right.png`).
 hand-labelled truth boxes. The adaptive mode grounds the whole screen once and verifies the hit
 with the same result check. Only if that check fails does it run full ScreenSeekeR.
 
-COMPARISON_TABLE
+Six cases. All three icon positions; the absent target; a **decoy**, "Terminal icon on the
+desktop" (Terminal is only in the Dock); and a **non-desktop target**, the Wi-Fi status icon in
+the menu bar. Only a hit inside the truth box counts as correct, and for absent or decoy
+targets only `not_found` counts.
+
+| Case | ScreenSeekeR, before fix #7 | ScreenSeekeR, final | Adaptive, before fix #7 | Adaptive, final |
+|---|---|---|---|---|
+| Top-left | ✅ 63 s | ✅ 53 s | ✅ 9 s | ✅ 12 s |
+| Bottom-right | ✅ 122 s | ✅ 73 s | ✅ 9 s | ✅ 12 s |
+| Centre | ✅ 44 s | ✅ 41 s | ✅ 10 s | ✅ 13 s |
+| Absent (Blender) | ✅ not_found, 34 s | ✅ not_found, 3 s ¹ | ✅ not_found, 14 s | ✅ not_found, 72 s |
+| **Decoy (Terminal in Dock)** | ❌ **wrong click** | ✅ not_found, 64 s | ❌ **wrong click** | ✅ not_found, 75 s |
+| Menu-bar Wi-Fi | ✅ 48 s | ✅ 51 s | ✅ 9 s | ✅ 14 s |
+| **Total** | 5/6, 1 wrong click | **6/6, 0 wrong clicks** | 5/6, 1 wrong click | **6/6, 0 wrong clicks** |
+
+¹ This time the planner answered "No target" straight away. Planner output varies between
+runs, and the earlier run explored the Dock first.
+
+**Verdict on the adaptive mode.**
+- **Faster when the target is present:** about 12–14 s against 41–73 s, with 1 planner call
+  and 1 grounder call instead of 2–3 and 6–8.
+- **Slower when the target is absent:** the direct hit has to fail verification before the
+  full search runs.
+- Accuracy and safety are the same on this set, because both paths share the same
+  location-aware check.
+
+I keep it as an option (`--mode adaptive`). The **paper's search remains the default** and is
+what the required demo uses. For the assignment's common case (the icon is present), adaptive
+would cut a ten-post run from about 11 minutes to about 4. Six cases are too few to claim more.
 
 ## 4. Failures found, and what changed
 
@@ -74,7 +102,7 @@ they were found.
 | 5 | The user's Claude app opened, and Finder windows appeared | `show_desktop` used shortcuts (⌥⌘H, ⌥⌘M): a double Option tap triggered a user hotkey, and keys went to whichever app was frontmost | No keystrokes: apps hidden via `NSRunningApplication.hide`, Finder windows minimised via Accessibility |
 | 6 | A test drag landed in the terminal | The screen changed between the screenshot and the action | Click only if the windows are unchanged since capture and none covers the point |
 | 7 | **Wrong launch:** with a pop-up over the alias, TextEdit was launched from the **Dock** | The planner proposed the Dock's recent-apps TextEdit, and the paper's crop-only result check accepted it for "TextEdit icon on the desktop" | (a) The check also sees a whole-screen thumbnail with the crop outlined, so location words can be judged; (b) the check runs at effort `medium`; (c) a desktop-icon hit inside the Dock or menu bar is never clicked |
-| 8 | Decoy "Terminal icon on the desktop" accepted (offline) | Same as #7. At effort `low` the check once said "in the Dock, not on the desktop" and still returned `is_target` | Same fixes; re-measured in §3 |
+| 8 | Decoy "Terminal icon on the desktop" accepted (offline) | Same as #7. At effort `low` the check once said "in the Dock, not on the desktop" and still returned `is_target` | Same fixes. After them, 12/12 correct with 0 wrong clicks (§3) |
 
 Failure #7 matters most. Without the fix the workflow reported success, because TextEdit did
 launch, even though the requirement (launch via the desktop icon) was violated. Process-state
@@ -97,8 +125,8 @@ checks cannot tell those apart. Only the grounding check can.
 - **Full ScreenSeekeR search:** typically 45–70 s, with 2–3 planner calls and 5–8 grounder
   calls. The 2B grounder takes about 7–11 s per call on this 8 GB M2, so it dominates. Each
   planner call takes about 4–8 s.
-- **Adaptive fast path:** about 9 s when the direct hit verifies. Otherwise the full search
-  runs as well.
+- **Adaptive fast path:** about 12–14 s when the direct hit verifies. When it does not (absent
+  or decoy target), the full search runs as well: about 72–75 s.
 - **One post end to end:** about 70–80 s, of which about 60 s is grounding.
 - **Speed-ups, in order of expected gain:**
   - use the adaptive mode;

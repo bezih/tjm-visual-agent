@@ -26,7 +26,10 @@ takes a new screenshot and runs a new search, so it never reuses the icon's last
 - The agent abstained (no click) when the target was absent.
 - An unexpected "Software Update" pop-up was dismissed with **Later** (never Install Now),
   the button being found from its label alone.
-- A full search takes about 50 s on an 8 GB M2. The optional adaptive mode takes about 9 s.
+- A full search takes about 50 s on an 8 GB M2. The optional adaptive mode takes about 12 s
+  when the target is present.
+- Offline comparison on the same screenshots: 12/12 correct, 0 wrong clicks, including a
+  Dock decoy that fooled the system before the fix.
 - Live testing found eight failures. One of them was the agent launching TextEdit from the
   **Dock** while the desktop icon was covered. All eight are documented, fixed and re-tested
   in the evaluation.
@@ -55,7 +58,8 @@ crop-only check; see evaluation §4, failure #7.
 
 **Adaptive mode** (`--mode adaptive`, our addition, off by default): ground the whole screen
 once and verify the hit with the same result check. Only if that check fails does the full
-search run. On the comparison set it was as accurate and about 5× faster; see evaluation §3.
+search run. On the comparison set it was just as accurate, with 0 wrong clicks. It was about
+4× faster when the target was present and slower when it was absent; see evaluation §3.
 
 The engine (`src/tjm_agent/grounding/`) knows nothing about TextEdit, icons or posts. The same
 call finds `"Save" button in the save sheet` or `"OK" button in the alert`. The workflow uses it

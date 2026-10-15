@@ -1,5 +1,7 @@
 # tjm-visual-agent
 
+[![ci](https://github.com/bezih/tjm-visual-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/bezih/tjm-visual-agent/actions/workflows/ci.yml)
+
 Vision-based desktop automation built around a from-scratch implementation of
 **ScreenSeekeR** (Li et al., *ScreenSpot-Pro: GUI Grounding for Professional High-Resolution
 Computer Use*, 2025, §4.2 / Algorithm 1 / Appendix C).
@@ -12,6 +14,40 @@ takes a new screenshot and runs a new search, so it never reuses the icon's last
 > **Platform:** the brief targets Windows/Notepad. With permission, this runs on **macOS with
 > TextEdit**, launched from a TextEdit alias on the desktop. See [docs/design.md §2](docs/design.md)
 > for the full mapping and every deviation.
+
+## Quick start
+
+Requirements: a Mac with Apple Silicon, [uv](https://docs.astral.sh/uv/), an Anthropic API
+key, and a **TextEdit alias on the desktop**. Full setup and macOS permissions are in
+[Setup](#setup).
+
+```bash
+git clone https://github.com/bezih/tjm-visual-agent && cd tjm-visual-agent
+uv sync --locked
+cp .env.example .env                    # put your ANTHROPIC_API_KEY in .env
+uv run --locked tjm-agent doctor        # checks permissions and config
+uv run --locked tjm-agent ground --hover   # finds the icon and moves the mouse to it (no click)
+uv run --locked tjm-agent run           # the assignment: 10 posts -> ~/Desktop/tjm-project/
+```
+
+## Output
+
+`tjm-agent run` writes `post_1.txt` … `post_10.txt` to `~/Desktop/tjm-project/`. The ten files
+from the final live run are in [evidence/full_run/output/](evidence/full_run/output/), each
+checked byte for byte against the API. For example, `post_1.txt`:
+
+```
+Title: sunt aut facere repellat provident occaecati excepturi optio reprehenderit
+
+quia et suscipit
+suscipit recusandae consequuntur expedita et cum
+reprehenderit molestiae ut ut quas totam
+nostrum rerum est autem sunt rem eveniet architecto
+```
+
+Each run also saves annotated screenshots and a trace of every search to `artifacts/run-*/`.
+
+## Documents and results
 
 - **Design (Part 1):** [docs/design.md](docs/design.md)
 - **Measured results, failures found and fixed, limitations:**
@@ -33,8 +69,8 @@ takes a new screenshot and runs a new search, so it never reuses the icon's last
 - **Bonus challenges, live: 5/5.** It picked TextEdit among 4 lookalike app icons, worked at
   32 px and 128 px icon sizes, and handled light mode (a white icon on a white wallpaper) and
   dark mode.
-- Live testing found eight failures. One of them was the agent launching TextEdit from the
-  **Dock** while the desktop icon was covered. All eight are documented, fixed and re-tested
+- Live testing found nine failures. One of them was the agent launching TextEdit from the
+  **Dock** while the desktop icon was covered. All nine are documented, fixed and re-tested
   in the evaluation.
 
 | Top-left | Center | Bottom-right |

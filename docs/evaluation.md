@@ -88,6 +88,37 @@ I keep it as an option (`--mode adaptive`). The **paper's search remains the def
 what the required demo uses. For the assignment's common case (the icon is present), adaptive
 would cut a ten-post run from about 11 minutes to about 4. Six cases are too few to claim more.
 
+## 3b. Bonus challenges (live, `scripts/bonus_matrix.py`)
+
+Every bonus condition was run on the real desktop with the default ScreenSeekeR search (no
+click). Each result was scored against the alias's **true bounds**, which Finder reports through
+Accessibility; those bounds are used only for scoring, never to find the icon. The theme
+conditions are scored only if the screenshot's brightness proves the wallpaper actually changed.
+
+| Bonus | Condition | Result | Time |
+|---|---|---|---|
+| Multiple icons, select the right one | TextEdit plus 4 lookalike app aliases (Notes, Preview, Script Editor, Stickies) | ✅ TextEdit | 51 s |
+| Icon sizes | 32 px icons | ✅ | 53 s |
+| Icon sizes | 128 px icons | ✅ | 51 s |
+| Light theme | Light mode, near-white wallpaper (white icon on white; brightness 238/255) | ✅ | 40 s |
+| Dark theme | Dark mode, near-black wallpaper (brightness 26/255) | ✅ | 55 s |
+
+**5/5 correct, 0 wrong clicks.** Evidence is in `evidence/bonus/`. One run per condition, so
+this shows the conditions work; it does not measure a rate.
+
+**Honest notes on how we got there.** Three test-setup mistakes were caught and are not
+counted:
+1. The first run scored 0/5 because Finder reopened a window over the desktop after each
+   Finder restart. The agent correctly said `not_found` and clicked nothing every time. The
+   script now waits for Finder and verifies a clear screen right before capturing.
+2. The wallpaper setter I used first (`NSWorkspace`) reported success but changed nothing.
+   That made the first "theme" results meaningless. The wallpaper is now set through System
+   Events and confirmed by measuring the screenshot's brightness.
+3. A wallpaper change sent during a Finder restart was lost. Now it is retried until the
+   brightness confirms it.
+
+Every run restored the original icon size, appearance and wallpaper.
+
 ## 4. Failures found, and what changed
 
 Each of these was found by a live test, fixed, and re-tested. They are listed in the order

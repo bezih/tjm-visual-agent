@@ -1,0 +1,196 @@
+{
+  "status": "found",
+  "instruction": "TextEdit application icon on the desktop",
+  "point_px": [
+    1571.92,
+    922.9599999999999
+  ],
+  "viewport": [
+    933,
+    378,
+    2213,
+    1490
+  ],
+  "events": [
+    {
+      "event": "position_inference",
+      "t": 3.77,
+      "depth": 0,
+      "viewport": [
+        0,
+        0,
+        3420,
+        2224
+      ],
+      "raw": "The <element>TextEdit application icon</element> sits near the center of the <area>desktop</area>. It shows a white lined-paper icon with a shortcut arrow badge, and the \"TextEdit\" label appears directly below it. It stands alone, with the <neighbor>tjm-project folder</neighbor> and <neighbor>brewd-coffee folder</neighbor> to its upper right. The <neighbor>checkin folder</neighbor> and the <neighbor>Google Ads Editor icon</neighbor> are to its lower right.",
+      "references": [
+        [
+          "element",
+          "TextEdit application icon"
+        ],
+        [
+          "area",
+          "desktop"
+        ],
+        [
+          "neighbor",
+          "tjm-project folder"
+        ],
+        [
+          "neighbor",
+          "brewd-coffee folder"
+        ],
+        [
+          "neighbor",
+          "checkin folder"
+        ],
+        [
+          "neighbor",
+          "Google Ads Editor icon"
+        ]
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 16.46,
+      "depth": 0,
+      "kind": "element",
+      "text": "TextEdit application icon",
+      "raw": "[460, 420]",
+      "point_px": [
+        1573.2,
+        934.0799999999999
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 21.96,
+      "depth": 0,
+      "kind": "area",
+      "text": "desktop",
+      "raw": "[500, 500]",
+      "point_px": [
+        1710.0,
+        1112.0
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 27.8,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "tjm-project folder",
+      "raw": "[962, 188]",
+      "point_px": [
+        3290.04,
+        418.112
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 33.18,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "brewd-coffee folder",
+      "raw": "[962, 288]",
+      "point_px": [
+        3290.04,
+        640.512
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 38.5,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "checkin folder",
+      "raw": "[743, 787]",
+      "point_px": [
+        2541.06,
+        1750.288
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 43.8,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "Google Ads Editor icon",
+      "raw": "[955, 775]",
+      "point_px": [
+        3266.1,
+        1723.6000000000001
+      ]
+    },
+    {
+      "event": "candidates",
+      "t": 43.8,
+      "depth": 0,
+      "patches": [
+        [
+          [
+            933,
+            378,
+            2213,
+            1490
+          ],
+          1.814
+        ],
+        [
+          [
+            2140,
+            1112,
+            3420,
+            2224
+          ],
+          1.242
+        ],
+        [
+          [
+            2140,
+            0,
+            3420,
+            1112
+          ],
+          0.781
+        ]
+      ]
+    },
+    {
+      "event": "ground_target",
+      "t": 51.24,
+      "depth": 1,
+      "viewport": [
+        933,
+        378,
+        2213,
+        1490
+      ],
+      "instruction": "TextEdit application icon on the desktop",
+      "raw": "[499, 490]",
+      "point_px": [
+        1571.92,
+        922.9599999999999
+      ]
+    },
+    {
+      "event": "check",
+      "t": 55.0,
+      "depth": 1,
+      "point_px": [
+        1571.92,
+        922.9599999999999
+      ],
+      "result": "is_target",
+      "new_instruction": "TextEdit application shortcut icon in the middle of the desktop",
+      "analysis": "The screenshot shows a macOS desktop with folders and a TextEdit alias icon in the middle of the desktop. The red box marks the TextEdit icon (with alias arrow) on the desktop, labeled 'TextEdit'. This matches the instruction."
+    }
+  ],
+  "planner_calls": 2,
+  "grounder_calls": 7,
+  "seconds": 55.00183366693091,
+  "click_pt": [
+    785.96,
+    461.47999999999996
+  ]
+}

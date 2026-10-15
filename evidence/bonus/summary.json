@@ -1,0 +1,111 @@
+{
+  "what": "Bonus challenges, live (scripts/bonus_matrix.py): default ScreenSeekeR search, no click. Scored against the TextEdit alias's true bounds from Finder's Accessibility tree (scoring only, never used to find it). Theme conditions are only scored if the screenshot brightness confirms the wallpaper applied.",
+  "runs": [
+    "bonus-20261015-011546",
+    "bonus-20261015-012426",
+    "bonus-20261015-012656"
+  ],
+  "invalid_runs_not_counted": [
+    "bonus-20261015-010636 (Finder windows reopened over the desktop after Finder restarts; all 5 returned not_found, no clicks)",
+    "light_theme in bonus-20261015-011546 and bonus-20261015-012426, dark_theme in bonus-20261015-011546 (wallpaper silently not applied)"
+  ],
+  "rows": [
+    {
+      "condition": "multiple_icons",
+      "description": "4 lookalike app aliases added (Notes, Preview, Script Editor, Stickies)",
+      "status": "found",
+      "correct": true,
+      "click_pt": [
+        788.0899999999999,
+        462.592
+      ],
+      "truth_bounds_pt": [
+        756.0,
+        428.0,
+        64.0,
+        64.0
+      ],
+      "seconds": 50.5,
+      "planner_calls": 2,
+      "grounder_calls": 5
+    },
+    {
+      "condition": "icons_small_32",
+      "description": "Finder desktop icon size 32 px (default here: 64)",
+      "status": "found",
+      "correct": true,
+      "click_pt": [
+        786.1699999999998,
+        460.924
+      ],
+      "truth_bounds_pt": [
+        772.0,
+        444.0,
+        32.0,
+        32.0
+      ],
+      "seconds": 53.0,
+      "planner_calls": 2,
+      "grounder_calls": 6
+    },
+    {
+      "condition": "icons_large_128",
+      "description": "Finder desktop icon size 128 px",
+      "status": "found",
+      "correct": true,
+      "click_pt": [
+        788.0999999999999,
+        459.25600000000003
+      ],
+      "truth_bounds_pt": [
+        724.0,
+        396.0,
+        128.0,
+        128.0
+      ],
+      "seconds": 50.8,
+      "planner_calls": 2,
+      "grounder_calls": 6
+    },
+    {
+      "condition": "dark_theme",
+      "description": "Dark mode + near-black wallpaper",
+      "status": "found",
+      "correct": true,
+      "click_pt": [
+        785.96,
+        461.47999999999996
+      ],
+      "truth_bounds_pt": [
+        756.0,
+        428.0,
+        64.0,
+        64.0
+      ],
+      "screen_brightness": 26,
+      "seconds": 55.0,
+      "planner_calls": 2,
+      "grounder_calls": 7
+    },
+    {
+      "condition": "light_theme",
+      "description": "Light mode + near-white wallpaper (white icon on white)",
+      "status": "found",
+      "correct": true,
+      "click_pt": [
+        787.8799999999999,
+        460.924
+      ],
+      "truth_bounds_pt": [
+        756.0,
+        428.0,
+        64.0,
+        64.0
+      ],
+      "screen_brightness": 238,
+      "seconds": 39.6,
+      "planner_calls": 2,
+      "grounder_calls": 5
+    }
+  ]
+}

@@ -85,6 +85,7 @@
   ],
   "more": {
     "popup/": "Live pop-up test on 4075b04: icon covered -> not_found -> triage safe -> 'Later' grounded by label and clicked (fixture log: 'Later clicked') -> icon found -> post saved. See popup/summary.json.",
-    "full_run/": "Final full run on 4075b04: 10/10 posts byte-exact, 11 searches all found, 689 s. Sample traces: post 1, post 2 (both attempts: a notification banner changed the screen before the click, so the agent re-searched), post 10. Full summary.json included."
+    "full_run/": "Final full run on 4075b04: 10/10 posts byte-exact, 11 searches all found, 689 s. Sample traces: post 1, post 2 (both attempts: a notification banner changed the screen before the click, so the agent re-searched), post 10. Full summary.json included.",
+    "bonus/": "Live bonus challenges (code at the commit that adds this folder): lookalike icons, 32/128 px icons, light and dark themes, 5/5 correct. See bonus/summary.json, including invalid runs that were excluded and why."
   }
 }

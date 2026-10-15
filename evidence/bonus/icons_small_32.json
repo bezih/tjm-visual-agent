@@ -1,0 +1,180 @@
+{
+  "status": "found",
+  "instruction": "TextEdit application icon on the desktop",
+  "point_px": [
+    1572.3399999999997,
+    921.848
+  ],
+  "viewport": [
+    930,
+    383,
+    2210,
+    1495
+  ],
+  "events": [
+    {
+      "event": "position_inference",
+      "t": 4.69,
+      "depth": 0,
+      "viewport": [
+        0,
+        0,
+        3420,
+        2224
+      ],
+      "raw": "The <element>TextEdit application icon</element> sits in the <area>center of the desktop, just above the mountain horizon line</area>. It is labeled \"TextEdit\" and appears as a white document icon with lines. It is isolated from the other desktop icons, so the nearest items are <neighbor>checkin folder icon</neighbor> (lower right) and <neighbor>tjm-project folder icon</neighbor> (in the right-side column, alongside <neighbor>brewd-coffee folder icon</neighbor>).",
+      "references": [
+        [
+          "element",
+          "TextEdit application icon"
+        ],
+        [
+          "area",
+          "center of the desktop, just above the mountain horizon line"
+        ],
+        [
+          "neighbor",
+          "checkin folder icon"
+        ],
+        [
+          "neighbor",
+          "tjm-project folder icon"
+        ],
+        [
+          "neighbor",
+          "brewd-coffee folder icon"
+        ]
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 17.43,
+      "depth": 0,
+      "kind": "element",
+      "text": "TextEdit application icon",
+      "raw": "[459, 422]",
+      "point_px": [
+        1569.78,
+        938.528
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 24.17,
+      "depth": 0,
+      "kind": "area",
+      "text": "center of the desktop, just above the mountain horizon line",
+      "raw": "[490, 390]",
+      "point_px": [
+        1675.8,
+        867.36
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 29.37,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "checkin folder icon",
+      "raw": "[745, 782]",
+      "point_px": [
+        2547.9,
+        1739.1680000000001
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 34.61,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "tjm-project folder icon",
+      "raw": "[962, 185]",
+      "point_px": [
+        3290.04,
+        411.44
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 39.83,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "brewd-coffee folder icon",
+      "raw": "[962, 285]",
+      "point_px": [
+        3290.04,
+        633.8399999999999
+      ]
+    },
+    {
+      "event": "candidates",
+      "t": 39.84,
+      "depth": 0,
+      "patches": [
+        [
+          [
+            930,
+            383,
+            2210,
+            1495
+          ],
+          1.941
+        ],
+        [
+          [
+            1908,
+            1112,
+            3188,
+            2224
+          ],
+          0.978
+        ],
+        [
+          [
+            2140,
+            0,
+            3420,
+            1112
+          ],
+          0.78
+        ]
+      ]
+    },
+    {
+      "event": "ground_target",
+      "t": 47.87,
+      "depth": 1,
+      "viewport": [
+        930,
+        383,
+        2210,
+        1495
+      ],
+      "instruction": "TextEdit application icon on the desktop",
+      "raw": "[502, 485]",
+      "point_px": [
+        1572.3399999999997,
+        921.848
+      ]
+    },
+    {
+      "event": "check",
+      "t": 53.0,
+      "depth": 1,
+      "point_px": [
+        1572.3399999999997,
+        921.848
+      ],
+      "result": "is_target",
+      "new_instruction": "Select the TextEdit alias icon in the middle of the desktop.",
+      "analysis": "The screenshot shows a macOS desktop with icons on the right side and the Dock at the bottom. The red box marks an icon in the middle of the desktop labeled \"TextEdit\". It has a white lined-paper image and a small arrow badge, which marks it as an alias to the TextEdit app. The icon sits directly on the desktop, so it matches the instruction."
+    }
+  ],
+  "planner_calls": 2,
+  "grounder_calls": 6,
+  "seconds": 52.997498749988154,
+  "click_pt": [
+    786.1699999999998,
+    460.924
+  ]
+}

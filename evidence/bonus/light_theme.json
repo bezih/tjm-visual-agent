@@ -1,0 +1,164 @@
+{
+  "status": "found",
+  "instruction": "TextEdit application icon on the desktop",
+  "point_px": [
+    1575.7599999999998,
+    921.848
+  ],
+  "viewport": [
+    933,
+    383,
+    2213,
+    1495
+  ],
+  "events": [
+    {
+      "event": "position_inference",
+      "t": 2.44,
+      "depth": 0,
+      "viewport": [
+        0,
+        0,
+        3420,
+        2224
+      ],
+      "raw": "The <element>TextEdit application icon</element> sits in the <area>center of the desktop</area>. It is a white lined-paper icon with an alias arrow and the label \"TextEdit\" underneath. Nearby are the <neighbor>checkin folder</neighbor> to the lower right and the <neighbor>brewd-coffee folder</neighbor> to the upper right.",
+      "references": [
+        [
+          "element",
+          "TextEdit application icon"
+        ],
+        [
+          "area",
+          "center of the desktop"
+        ],
+        [
+          "neighbor",
+          "checkin folder"
+        ],
+        [
+          "neighbor",
+          "brewd-coffee folder"
+        ]
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 12.76,
+      "depth": 0,
+      "kind": "element",
+      "text": "TextEdit application icon",
+      "raw": "[460, 422]",
+      "point_px": [
+        1573.2,
+        938.528
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 17.94,
+      "depth": 0,
+      "kind": "area",
+      "text": "center of the desktop",
+      "raw": "[469, 422]",
+      "point_px": [
+        1603.98,
+        938.528
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 23.16,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "checkin folder",
+      "raw": "[743, 787]",
+      "point_px": [
+        2541.06,
+        1750.288
+      ]
+    },
+    {
+      "event": "ground_reference",
+      "t": 28.38,
+      "depth": 0,
+      "kind": "neighbor",
+      "text": "brewd-coffee folder",
+      "raw": "[962, 287]",
+      "point_px": [
+        3290.04,
+        638.2879999999999
+      ]
+    },
+    {
+      "event": "candidates",
+      "t": 28.39,
+      "depth": 0,
+      "patches": [
+        [
+          [
+            933,
+            383,
+            2213,
+            1495
+          ],
+          1.997
+        ],
+        [
+          [
+            1901,
+            1112,
+            3181,
+            2224
+          ],
+          0.97
+        ],
+        [
+          [
+            2140,
+            82,
+            3420,
+            1194
+          ],
+          0.414
+        ]
+      ]
+    },
+    {
+      "event": "ground_target",
+      "t": 35.71,
+      "depth": 1,
+      "viewport": [
+        933,
+        383,
+        2213,
+        1495
+      ],
+      "instruction": "TextEdit application icon on the desktop",
+      "raw": "[502, 485]",
+      "point_px": [
+        1575.7599999999998,
+        921.848
+      ]
+    },
+    {
+      "event": "check",
+      "t": 39.63,
+      "depth": 1,
+      "point_px": [
+        1575.7599999999998,
+        921.848
+      ],
+      "result": "is_target",
+      "new_instruction": "TextEdit shortcut icon located in the center of the desktop",
+      "analysis": "The red box surrounds the TextEdit icon (an alias shortcut, labeled 'TextEdit') located in the middle of the desktop. This matches the instruction: a TextEdit icon on the desktop."
+    }
+  ],
+  "planner_calls": 2,
+  "grounder_calls": 5,
+  "seconds": 39.6331014999887,
+  "click_pt": [
+    787.8799999999999,
+    460.924
+  ]
+}

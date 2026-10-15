@@ -60,6 +60,9 @@ def cmd_ground(args, settings) -> int:
     path = trace.save(run_dir, args.name, shot.image, outcome, click_pt, title=args.name)
     print(f"{outcome.status}: px={outcome.point_px} click_pt={click_pt} "
           f"({outcome.seconds:.1f}s, planner {outcome.planner_calls}, grounder {outcome.grounder_calls})")
+    print()
+    print(trace.explain(outcome.events, outcome.status, outcome.instruction))
+    print()
     print(f"trace: {path}")
     if outcome.status == "found" and args.hover:
         desktop.move(*click_pt)
@@ -112,6 +115,26 @@ def cmd_run(args, settings) -> int:
     return 0 if ok == len(posts) else 1
 
 
+def cmd_explain(args, settings) -> int:
+    import json
+
+    from . import trace
+
+    path = Path(args.trace)
+    if path.is_dir():
+        found = sorted(path.glob("*.json"))
+        found = [p for p in found if p.name != "summary.json"]
+        if not found:
+            print(f"no trace .json in {path}")
+            return 1
+        path = found[-1]
+    elif path.suffix == ".png":
+        path = path.with_name(path.name.replace("_annotated.png", ".json"))
+    d = json.loads(path.read_text())
+    print(trace.explain(d["events"], d["status"], d["instruction"]))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="tjm-agent")
     sub = p.add_subparsers(dest="command", required=True)
@@ -122,6 +145,8 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--hover", action="store_true", help="move the mouse to the result")
     g.add_argument("--no-show-desktop", action="store_true")
     g.add_argument("--mode", choices=["screenseeker", "adaptive"], default="screenseeker")
+    e = sub.add_parser("explain", help="print the plain-language story of a saved search")
+    e.add_argument("trace", help="a trace .json, its _annotated.png, or a run-* folder")
     r = sub.add_parser("run", help="run the ten-post TextEdit workflow")
     r.add_argument("--posts", type=int, default=10)
     r.add_argument("--mode", choices=["screenseeker", "adaptive"], default="screenseeker")
@@ -132,7 +157,8 @@ def main(argv: list[str] | None = None) -> int:
             settings, search=dataclasses.replace(settings.search, mode=args.mode))
     if getattr(args, "target", "") is None:
         args.target = settings.icon_target
-    return {"doctor": cmd_doctor, "ground": cmd_ground, "run": cmd_run}[args.command](args, settings)
+    return {"doctor": cmd_doctor, "ground": cmd_ground, "run": cmd_run,
+            "explain": cmd_explain}[args.command](args, settings)
 
 
 if __name__ == "__main__":

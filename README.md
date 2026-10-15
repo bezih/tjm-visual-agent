@@ -93,7 +93,8 @@ View › Sort By › None, so the icon stays where it is dropped. Quit TextEdit 
 
 ```bash
 uv run --locked tjm-agent doctor                     # permissions, display mapping, config
-uv run --locked tjm-agent ground                     # find the TextEdit alias, save annotated trace, no click
+uv run --locked tjm-agent ground                     # find the TextEdit alias, print the search story, save annotated trace, no click
+uv run --locked tjm-agent explain artifacts/run-…/   # replay the plain-language story of a saved search
 uv run --locked tjm-agent ground --target "Blender application icon on the desktop"   # absent → not_found
 uv run --locked tjm-agent ground --target "Wi-Fi status icon in the menu bar" --hover   # not an icon on the desktop
 uv run --locked tjm-agent ground --mode adaptive     # fast path, falls back to full search

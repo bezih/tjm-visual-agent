@@ -100,3 +100,61 @@ def save(run_dir: Path, name: str, screenshot: Image.Image, outcome: Outcome, cl
 
 def new_run_dir(root: Path = Path("artifacts")) -> Path:
     return root / time.strftime("run-%Y%m%d-%H%M%S")
+
+
+def explain(events: list[dict], status: str, instruction: str) -> str:
+    """Plain-language story of one search, built from its trace events."""
+    lines = [f'Target: "{instruction}"', ""]
+    step = 0
+    for ev in events:
+        kind = ev["event"]
+        if kind == "fast_path_ground":
+            step += 1
+            lines.append(f"{step}. FAST PATH: the local model looked at the whole screen and "
+                         f"pointed at {_pt(ev.get('point_px'))}.")
+        elif kind == "fast_path_check":
+            lines.append(f"   Claude checked that guess -> {ev['result']}")
+            lines.append(f"   Claude's reasoning: {ev['analysis']}")
+        elif kind == "position_inference":
+            step += 1
+            lines.append(f"{step}. PLAN (Claude, looking at the screen): where is it likely to be?")
+            lines.append("   Claude's answer, word for word:")
+            lines += [f"     {t}" for t in ev["raw"].strip().splitlines() if t.strip()]
+            refs = ev.get("references") or []
+            if not refs:
+                lines.append("   (No target: Claude does not see it, so the search stops here.)")
+        elif kind == "ground_reference":
+            where = _pt(ev.get("point_px")) if ev.get("point_px") else "(not found)"
+            lines.append(f"   - local model located {ev['kind']} '{ev['text']}' at {where}")
+        elif kind == "candidates":
+            step += 1
+            lines.append(f"{step}. ZOOM: each located spot becomes a zoom area, scored by how "
+                         "many spots sit near its centre (paper's formula):")
+            for rank, (box, score) in enumerate(ev["patches"], 1):
+                lines.append(f"   candidate #{rank}: score {score}  (box {box})")
+            lines.append("   It searches the highest-scoring area first.")
+        elif kind == "ground_target":
+            step += 1
+            where = _pt(ev.get("point_px")) if ev.get("point_px") else "nothing (it refused)"
+            lines.append(f"{step}. POINT: inside that zoomed area, the local model pointed at "
+                         f"{where}.")
+        elif kind == "check":
+            verdict = {"is_target": "YES, this is the target",
+                       "target_elsewhere": "NO, but the target is elsewhere",
+                       "target_not_found": "NO, and the target is not here"}[ev["result"]]
+            lines.append(f"   CHECK (Claude, seeing the red box + the whole screen): {verdict}")
+            lines.append(f"   Claude's reasoning: {ev['analysis']}")
+            if ev.get("new_instruction") and ev["result"] == "target_elsewhere":
+                lines.append(f"   Claude rewrote the target as: \"{ev['new_instruction']}\" "
+                             "and the search retries with it.")
+        elif kind == "budget_exhausted":
+            lines.append(f"   Stopped: {ev['reason']} (never guesses).")
+    lines.append("")
+    lines.append({"found": "RESULT: found and verified, so it is allowed to click.",
+                  "not_found": "RESULT: not found, so it does NOT click.",
+                  "budget_exhausted": "RESULT: ran out of budget, so it does NOT click."}[status])
+    return "\n".join(lines)
+
+
+def _pt(p) -> str:
+    return f"({p[0]:.0f}, {p[1]:.0f}) px" if p else "-"

@@ -43,6 +43,12 @@ class WorkflowError(RuntimeError):
     pass
 
 
+def in_area(point, area) -> bool:
+    x, y = point
+    ax, ay, aw, ah = area
+    return ax <= x <= ax + aw and ay <= y <= ay + ah
+
+
 def safe_to_click(point, windows_at_capture, windows_now) -> bool:
     """A grounded point is only clicked if the screen is what we grounded on: the same
     windows as at capture time, and none of them covers the point."""
@@ -136,6 +142,11 @@ class PostWorkflow:
             self.log(f"  grounding #{attempt}: {outcome.status} {click_pt or ''} "
                      f"({outcome.seconds:.1f}s, planner {outcome.planner_calls}, "
                      f"grounder {outcome.grounder_calls})")
+            if outcome.status == "found" and not in_area(click_pt, desktop.desktop_area()):
+                # Defence in depth: a desktop icon cannot be in the Dock or the menu bar.
+                self.log(f"  hit {click_pt} is in the Dock/menu bar, not on the desktop; "
+                         "treating as not found")
+                outcome.status = "not_found"
             if outcome.status != "found":
                 # Never click on uncertainty. Something may be covering the icon (an alert,
                 # a pop-up): triage it, dismiss it only via a safe button, then search again.

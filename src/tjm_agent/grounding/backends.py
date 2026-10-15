@@ -69,7 +69,8 @@ def _jpeg_b64(image: Image.Image, max_side: int) -> str:
 @dataclass
 class ClaudePlanner:
     model: str = "claude-opus-5-5"
-    effort: str = "low"
+    effort: str = "low"  # position inference and triage
+    check_effort: str = "medium"  # the result check gates every click; low was inconsistent
     max_side: int = 1568
     calls: int = 0
     seconds: float = 0.0
@@ -93,6 +94,14 @@ class ClaudePlanner:
             {"type": "text", "text": text},
         ]
 
+    def _check_content(self, crop: Image.Image, instruction: str,
+                       context: Image.Image | None) -> list[dict]:
+        text = prompts.RESULT_CHECK.format(instruction=instruction)
+        if context is None:
+            return self._content(crop, text)
+        content = self._content(context, text + prompts.RESULT_CHECK_CONTEXT)
+        return [content[0], *self._content(crop, "")[:1], content[1]]
+
     def position_inference(self, image: Image.Image, instruction: str) -> PositionInference:
         t0 = time.monotonic()
         resp = self._client.messages.create(
@@ -115,21 +124,16 @@ class ClaudePlanner:
         text = "".join(b.text for b in resp.content if b.type == "text")
         return parse_position_inference(text)
 
-    def check(self, marked_crop: Image.Image, instruction: str) -> CheckVerdict:
+    def check(self, marked_crop: Image.Image, instruction: str,
+              context: Image.Image | None = None) -> CheckVerdict:
         t0 = time.monotonic()
         resp = self._client.messages.parse(
             model=self.model,
             max_tokens=4000,
-            output_config={"effort": self.effort},
+            output_config={"effort": self.check_effort},
             output_format=CheckVerdict,
-            messages=[
-                {
-                    "role": "user",
-                    "content": self._content(
-                        marked_crop, prompts.RESULT_CHECK.format(instruction=instruction)
-                    ),
-                }
-            ],
+            messages=[{"role": "user", "content": self._check_content(marked_crop, instruction,
+                                                                      context)}],
         )
         self.calls += 1
         self.seconds += time.monotonic() - t0

@@ -33,7 +33,8 @@ class Planner(Protocol):
     calls: int
 
     def position_inference(self, image: Image.Image, instruction: str) -> PositionInference: ...
-    def check(self, marked_crop: Image.Image, instruction: str) -> CheckVerdict: ...
+    def check(self, marked_crop: Image.Image, instruction: str,
+              context: Image.Image | None = None) -> CheckVerdict: ...
 
 
 class Grounder(Protocol):
@@ -56,6 +57,10 @@ class SearchConfig:
     max_planner_calls: int = 10
     max_grounder_calls: int = 30
     time_limit_s: float = 150.0
+    # "screenseeker": the paper's search (default). "adaptive" (our addition): one direct
+    # grounding of the full screen, verified with the paper's result-check prompt; only if
+    # that check fails does the full ScreenSeekeR search run.
+    mode: Literal["screenseeker", "adaptive"] = "screenseeker"
 
 
 Status = Literal["found", "not_found", "budget_exhausted"]
@@ -92,7 +97,9 @@ class ScreenSeekeR:
         self._t0 = time.monotonic()
         root = Box(0, 0, screenshot.width, screenshot.height)
         try:
-            hit = self._visual_search(instruction, root, depth=0)
+            hit = self._fast_path(instruction, root) if self.cfg.mode == "adaptive" else None
+            if hit is None:
+                hit = self._visual_search(instruction, root, depth=0)
             status: Status = "found" if hit else "not_found"
         except _Budget as e:
             self._log("budget_exhausted", reason=str(e))
@@ -150,6 +157,24 @@ class ScreenSeekeR:
                 return hit
         return None
 
+    def _fast_path(self, instruction: str, root: Box):
+        """Ground once on the whole screen; accept only if the planner verifies the hit in a
+        leaf-sized crop around it. Any doubt falls through to the full search."""
+        self._spend("grounder")
+        gp = self.grounder.ground(self._image, instruction)
+        pt = self._to_screenshot(gp, root)
+        self._log("fast_path_ground", raw=gp.raw, point_px=pt)
+        if not pt:
+            return None
+        w, h = patch_size(root, self.cfg.leaf_size, 1.0)
+        viewport = dilate(Box.around(*pt, 1, 1), w, root, h)
+        self._spend("planner")
+        verdict = self.planner.check(self._mark(self._crop(viewport), viewport, pt), instruction,
+                                     self._context(viewport, pt))
+        self._log("fast_path_check", point_px=pt, viewport=viewport.as_int(),
+                  result=verdict.result, analysis=verdict.analysis)
+        return (pt, viewport) if verdict.result == "is_target" else None
+
     def _leaf(self, instruction: str, viewport: Box, depth: int):
         crop = self._crop(viewport)
         tried: set[str] = set()
@@ -163,7 +188,8 @@ class ScreenSeekeR:
             if not pt:
                 return None
             self._spend("planner")
-            verdict = self.planner.check(self._mark(crop, viewport, pt), instruction)
+            verdict = self.planner.check(self._mark(crop, viewport, pt), instruction,
+                                           self._context(viewport, pt))
             self._log("check", depth=depth, point_px=pt, result=verdict.result,
                       new_instruction=verdict.new_instruction, analysis=verdict.analysis)
             if verdict.result == "is_target":
@@ -190,6 +216,16 @@ class ScreenSeekeR:
         x, y = pt[0] - viewport.x1, pt[1] - viewport.y1
         h = self.cfg.mark_size / 2
         d.rectangle([x - h, y - h, x + h, y + h], outline=(255, 0, 0), width=4)
+        return img
+
+    def _context(self, viewport: Box, pt: tuple[float, float]) -> Image.Image:
+        """Whole-screen thumbnail: crop outlined in blue, candidate in red (our addition)."""
+        img = self._image.copy()
+        d = ImageDraw.Draw(img)
+        d.rectangle(viewport.as_int(), outline=(33, 150, 243), width=12)
+        h = self.cfg.mark_size / 2
+        d.rectangle([pt[0] - h, pt[1] - h, pt[0] + h, pt[1] + h], outline=(255, 0, 0), width=10)
+        img.thumbnail((1024, 1024))
         return img
 
     def _spend(self, kind: str) -> None:

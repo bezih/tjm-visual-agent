@@ -19,17 +19,26 @@ MANIFEST = STASH / "manifest.json"
 
 
 def stash(keep: set[str]) -> None:
-    if MANIFEST.exists():
-        sys.exit(f"A stash already exists ({MANIFEST}); restore it first.")
+    """Move Desktop items into the stash. Running it again adds newly appeared items to the
+    same stash (one manifest); a name already in the stash is left on the Desktop."""
     STASH.mkdir(exist_ok=True)
-    moved = []
+    manifest = json.loads(MANIFEST.read_text()) if MANIFEST.exists() else {"moved": []}
+    moved, skipped = [], []
     for item in sorted(DESKTOP.iterdir()):
         if item.name.startswith(".") or item.name in keep:
             continue
+        if (STASH / item.name).exists():
+            skipped.append(item.name)
+            continue
         item.rename(STASH / item.name)
         moved.append(item.name)
-    MANIFEST.write_text(json.dumps({"moved": moved, "kept": sorted(keep)}, indent=2))
-    print(f"stashed {len(moved)} items to {STASH}; kept: {sorted(keep)}")
+    manifest["moved"] += moved
+    manifest["kept"] = sorted(keep)
+    MANIFEST.write_text(json.dumps(manifest, indent=2))
+    print(f"stashed {len(moved)} more items to {STASH} ({len(manifest['moved'])} total); "
+          f"kept: {sorted(keep)}")
+    if skipped:
+        print(f"left on Desktop (name already in stash): {skipped}")
 
 
 def restore() -> None:

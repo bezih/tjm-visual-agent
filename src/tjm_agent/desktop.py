@@ -277,3 +277,14 @@ def focused_field(app_name: str) -> tuple[str | None, str | None]:
     _e, role = AXUIElementCopyAttributeValue(el, "AXRole", None)
     _e, value = AXUIElementCopyAttributeValue(el, "AXValue", None)
     return (str(role) if role else None, str(value) if value is not None else None)
+
+
+def desktop_area() -> tuple[float, float, float, float]:
+    """(x, y, w, h) in top-left points of the screen area that is neither menu bar nor Dock
+    (NSScreen.visibleFrame). Desktop icons can only be here."""
+    from AppKit import NSScreen
+
+    screen = NSScreen.mainScreen()
+    full, vis = screen.frame(), screen.visibleFrame()
+    top = full.size.height - (vis.origin.y + vis.size.height)  # Cocoa origin is bottom-left
+    return (vis.origin.x, top, vis.size.width, vis.size.height)

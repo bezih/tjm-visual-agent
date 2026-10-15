@@ -19,6 +19,7 @@ class Settings:
     planner_provider: str
     planner_model: str
     planner_effort: str
+    check_effort: str
     grounder_repo: str
     search: SearchConfig
     output_dir: Path
@@ -36,6 +37,7 @@ def load() -> Settings:
         planner_provider=provider,
         planner_model=os.getenv("PLANNER_MODEL", "claude-opus-5-5"),
         planner_effort=os.getenv("PLANNER_EFFORT", "low"),
+        check_effort=os.getenv("CHECK_EFFORT", "medium"),
         grounder_repo=os.getenv("GROUNDER_REPO", "mlx-community/UI-Venus-1.5-2B-6bit"),
         search=SearchConfig(),
         output_dir=Path(os.getenv("OUTPUT_DIR", str(Path.home() / "Desktop" / "tjm-project"))),

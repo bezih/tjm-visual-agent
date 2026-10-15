@@ -25,6 +25,7 @@ from AppKit import (
     NSScreen,
     NSTextField,
     NSTimer,
+    NSWindowCollectionBehaviorCanJoinAllSpaces,
     NSWindowStyleMaskTitled,
 )
 
@@ -58,6 +59,7 @@ panel = NSPanel.alloc().initWithContentRect_styleMask_backing_defer_(
 panel.setTitle_("Software Update")
 panel.setLevel_(NSModalPanelWindowLevel)
 panel.setCanHide_(False)
+panel.setCollectionBehavior_(NSWindowCollectionBehaviorCanJoinAllSpaces)  # appear on every Space
 panel.setHidesOnDeactivate_(False)
 handler = Handler.alloc().init()
 view = panel.contentView()

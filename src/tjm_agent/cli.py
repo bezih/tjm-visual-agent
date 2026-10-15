@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import os
 import sys
 import time
@@ -15,7 +16,8 @@ def _engine(settings):
     from .grounding.backends import ClaudePlanner, VenusGrounder
     from .grounding.screenseeker import ScreenSeekeR
 
-    planner = ClaudePlanner(model=settings.planner_model, effort=settings.planner_effort)
+    planner = ClaudePlanner(model=settings.planner_model, effort=settings.planner_effort,
+                            check_effort=settings.check_effort)
     grounder = VenusGrounder(repo=settings.grounder_repo)
     return ScreenSeekeR(planner, grounder, settings.search)
 
@@ -33,7 +35,8 @@ def cmd_doctor(args, settings) -> int:
     key = bool(os.getenv("ANTHROPIC_API_KEY"))
     print(f"[{'ok' if key else 'MISSING'}] ANTHROPIC_API_KEY set (value not shown)")
     ok &= key
-    print(f"[ok] planner {settings.planner_model} (effort {settings.planner_effort}); "
+    print(f"[ok] planner {settings.planner_model} (effort {settings.planner_effort}, "
+          f"check {settings.check_effort}); "
           f"grounder {settings.grounder_repo}")
     print(f"[ok] output dir {settings.output_dir}")
     return 0 if ok else 1
@@ -95,6 +98,7 @@ def cmd_run(args, settings) -> int:
     ok = sum(r.ok for r in results)
     summary = write_summary(run_dir, results, {
         "commit": commit, "planner": settings.planner_model, "effort": settings.planner_effort,
+        "check_effort": settings.check_effort,
         "grounder": settings.grounder_repo, "search": asdict(settings.search),
         "posts_ok": ok, "posts_total": len(posts), "seconds": round(time.monotonic() - t0, 1),
     })
@@ -111,10 +115,15 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--name", default="ground")
     g.add_argument("--hover", action="store_true", help="move the mouse to the result")
     g.add_argument("--no-show-desktop", action="store_true")
+    g.add_argument("--mode", choices=["screenseeker", "adaptive"], default="screenseeker")
     r = sub.add_parser("run", help="run the ten-post TextEdit workflow")
     r.add_argument("--posts", type=int, default=10)
+    r.add_argument("--mode", choices=["screenseeker", "adaptive"], default="screenseeker")
     args = p.parse_args(argv)
     settings = config.load()
+    if getattr(args, "mode", None):
+        settings = dataclasses.replace(
+            settings, search=dataclasses.replace(settings.search, mode=args.mode))
     if getattr(args, "target", "") is None:
         args.target = settings.icon_target
     return {"doctor": cmd_doctor, "ground": cmd_ground, "run": cmd_run}[args.command](args, settings)

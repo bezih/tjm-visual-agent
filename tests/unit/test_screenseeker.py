@@ -1,5 +1,6 @@
 """ScreenSeekeR control flow with scripted (fake) planner/grounder — no models, no desktop."""
 
+import pytest
 from PIL import Image
 
 from tjm_agent.grounding.backends import (
@@ -28,7 +29,7 @@ class FakeGrounder:
         if not self.present or "icon" not in instruction:
             return GroundPoint("[-1,-1]", None, None)
         # The fake knows which crop it is shown via the image's info dict.
-        x1, y1 = image.info["origin"]
+        x1, y1 = image.info.get("origin", (0, 0))
         x = (TARGET_PX[0] - x1) / image.width * 1000
         y = (TARGET_PX[1] - y1) / image.height * 1000
         if not (0 <= x <= 1000 and 0 <= y <= 1000):
@@ -42,12 +43,14 @@ class FakePlanner:
         self.raw = raw
         self.verdicts = list(verdicts)
         self.checked = 0
+        self.contexts = []
 
     def position_inference(self, image, instruction):
         self.calls += 1
         return parse_position_inference(self.raw)
 
-    def check(self, marked_crop, instruction):
+    def check(self, marked_crop, instruction, context=None):
+        self.contexts.append(context)
         self.calls += 1
         self.checked += 1
         return self.verdicts.pop(0)
@@ -137,3 +140,30 @@ def test_parse_grounder_output_formats():
     assert parse_grounder_output("[-1,-1]").refused
     assert parse_grounder_output("I cannot find it").refused
     assert parse_grounder_output("[1500, 20]").refused  # off-grid → treated as refusal
+
+
+def test_adaptive_fast_path_accepts_verified_direct_hit():
+    planner = FakePlanner(RAW, [CheckVerdict(analysis="", result="is_target")])
+    grounder = FakeGrounder()
+    out = _engine(planner, grounder, mode="adaptive").search(SCREEN, "TextEdit icon")
+    assert out.status == "found"
+    assert (out.planner_calls, out.grounder_calls) == (1, 1)  # no position inference needed
+    assert out.events[0]["event"] == "fast_path_ground"
+
+
+def test_adaptive_falls_back_to_full_search_when_check_fails():
+    verdicts = [CheckVerdict(analysis="", result="target_not_found"),
+                CheckVerdict(analysis="", result="is_target")]
+    out = _engine(FakePlanner(RAW, verdicts), FakeGrounder(), mode="adaptive").search(
+        SCREEN, "TextEdit icon")
+    assert out.status == "found"
+    events = [e["event"] for e in out.events]
+    assert events[:3] == ["fast_path_ground", "fast_path_check", "position_inference"]
+
+
+def test_result_check_receives_whole_screen_context():
+    planner = FakePlanner(RAW, [CheckVerdict(analysis="", result="is_target")])
+    _engine(planner, FakeGrounder()).search(SCREEN, "TextEdit icon on the desktop")
+    ctx = planner.contexts[0]
+    assert ctx is not None and max(ctx.size) <= 1024  # thumbnail of the full screen
+    assert ctx.size[0] / ctx.size[1] == pytest.approx(W / H, rel=0.01)

@@ -62,6 +62,9 @@ class FakeDesktop:
     def focused_field(self, name):
         return self.field
 
+    def desktop_area(self):
+        return (0.0, 20.0, 1710.0, 1000.0)  # menu bar above, Dock below y=1020
+
     # actions
     def double_click(self, x, y):
         self.actions.append(("double_click", x, y))
@@ -238,3 +241,10 @@ def test_prefs_refuse_to_start_while_textedit_runs(monkeypatch, tmp_path):
     monkeypatch.setattr(workflow.desktop, "is_running", lambda name: True)
     with pytest.raises(WorkflowError, match="already running"):
         workflow.TextEditPrefs(tmp_path / "b.json").__enter__()
+
+
+def test_hit_in_dock_is_never_double_clicked(fake, tmp_path):
+    # e.g. the Dock's TextEdit icon accepted for "TextEdit icon on the desktop"
+    engine = FakeEngine([found(2630, 2142), found(200, 100)])  # px → (1315, 1071) pt = Dock
+    _flow(engine, tmp_path).ground_and_launch(POST, PostResult(1, False, ""))
+    assert [a for a in fake.actions if a[0] == "double_click"] == [("double_click", 100, 50)]

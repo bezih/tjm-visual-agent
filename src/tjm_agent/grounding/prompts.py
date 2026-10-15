@@ -62,3 +62,11 @@ The screen did not reach the expected state ({expected}). Look at the screenshot
 - "none": there is no dialog; the screen simply shows something else.
 - "unknown": unclear.
 4. If "safe", give the exact label of the one button to click."""
+
+# Our addition, appended to RESULT_CHECK (paper prompt kept verbatim above). The paper's
+# checker sees only the leaf crop, so it cannot judge location words in the instruction:
+# live, it accepted the Dock's TextEdit icon for "TextEdit icon on the desktop". We also
+# send a thumbnail of the whole screen with the crop outlined.
+RESULT_CHECK_CONTEXT = """
+
+Additional context: the FIRST image is the whole screen, downscaled. The blue rectangle shows where the cropped screenshot (the SECOND image) was taken from, and the red box marks the same element. Use the whole screen to judge any location words in the instruction (for example "on the desktop", "in the Dock", "in the menu bar", "in the dialog"). If the marked element matches the description but is in a different place than the instruction says, the answer is not 'is_target'."""

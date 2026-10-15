@@ -13,7 +13,7 @@ takes a new screenshot and runs a new search, so it never reuses the icon's last
 > TextEdit**, launched from a TextEdit alias on the desktop. See [docs/design.md §2](docs/design.md)
 > for the full mapping and every deviation.
 
-- **Design (Part 1):** [docs/design.md](docs/design.md) ([PDF](docs/design.pdf))
+- **Design (Part 1):** [docs/design.md](docs/design.md)
 - **Measured results, failures found and fixed, limitations:**
   [docs/evaluation.md](docs/evaluation.md)
 - **Evidence:** [evidence/](evidence/) has real annotated detections, the pop-up test and the

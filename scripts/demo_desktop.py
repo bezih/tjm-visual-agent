@@ -35,8 +35,10 @@ def stash(keep: set[str]) -> None:
     manifest["moved"] += moved
     manifest["kept"] = sorted(keep)
     MANIFEST.write_text(json.dumps(manifest, indent=2))
-    print(f"stashed {len(moved)} more items to {STASH} ({len(manifest['moved'])} total); "
-          f"kept: {sorted(keep)}")
+    print(
+        f"stashed {len(moved)} more items to {STASH} ({len(manifest['moved'])} total); "
+        f"kept: {sorted(keep)}"
+    )
     if skipped:
         print(f"left on Desktop (name already in stash): {skipped}")
 

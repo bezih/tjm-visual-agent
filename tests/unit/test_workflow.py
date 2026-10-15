@@ -5,7 +5,6 @@ rules: no click on uncertainty or on a changed screen, only allowlisted dialog b
 no overwrite, no Return on an unverified field, exact preference restore.
 """
 
-
 import pytest
 from PIL import Image
 
@@ -93,8 +92,11 @@ class FakePlanner:
 
     def triage(self, image, step, expected):
         self.calls += 1
-        return self.triages.pop(0) if self.triages else DialogTriage(
-            description="nothing unusual", buttons=[], risk="none")
+        return (
+            self.triages.pop(0)
+            if self.triages
+            else DialogTriage(description="nothing unusual", buttons=[], risk="none")
+        )
 
 
 class FakeEngine:
@@ -168,8 +170,12 @@ def test_screen_change_between_capture_and_click_prevents_click(fake, tmp_path):
 
 
 def test_dialog_covering_icon_dismissed_by_safe_button_then_relaunch(fake, tmp_path):
-    triage = DialogTriage(description="Software Update alert", buttons=["Later", "Install"],
-                          risk="safe", button_to_click="Later")
+    triage = DialogTriage(
+        description="Software Update alert",
+        buttons=["Later", "Install"],
+        risk="safe",
+        button_to_click="Later",
+    )
     engine = FakeEngine([not_found(), found(30, 30), found(200, 100)], FakePlanner([triage]))
     _flow(engine, tmp_path).ground_and_launch(POST, PostResult(1, False, ""))
     assert engine.targets[1].startswith('"Later" button')  # button grounded by description
@@ -178,8 +184,9 @@ def test_dialog_covering_icon_dismissed_by_safe_button_then_relaunch(fake, tmp_p
 
 
 def test_non_allowlisted_button_is_never_pressed(fake, tmp_path):
-    triage = DialogTriage(description="update", buttons=["Install"], risk="safe",
-                          button_to_click="Install")
+    triage = DialogTriage(
+        description="update", buttons=["Install"], risk="safe", button_to_click="Install"
+    )
     engine = FakeEngine([], FakePlanner([triage]))
     result = PostResult(1, False, "")
     assert _flow(engine, tmp_path).intervene(result, "step", "expected") is False
@@ -204,7 +211,7 @@ def test_existing_output_is_never_overwritten(fake, tmp_path):
 
 
 def test_save_never_presses_return_on_unverified_field(fake, tmp_path):
-    fake.field = ("AXTextField", "post_") # field never shows the full name
+    fake.field = ("AXTextField", "post_")  # field never shows the full name
     with pytest.raises(WorkflowError, match="save name"):
         _flow(FakeEngine([]), tmp_path).save_as(POST, PostResult(1, False, ""))
     assert ("press", "return") not in fake.actions

@@ -55,7 +55,10 @@ app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
 frame = NSScreen.mainScreen().frame()
 panel = NSPanel.alloc().initWithContentRect_styleMask_backing_defer_(
     NSMakeRect((frame.size.width - W) / 2, (frame.size.height - H) / 2, W, H),
-    NSWindowStyleMaskTitled, NSBackingStoreBuffered, False)
+    NSWindowStyleMaskTitled,
+    NSBackingStoreBuffered,
+    False,
+)
 panel.setTitle_("Software Update")
 panel.setLevel_(NSModalPanelWindowLevel)
 panel.setCanHide_(False)
@@ -71,5 +74,6 @@ for title, x in (("Later", W - 250), ("Install Now", W - 136)):
     view.addSubview_(b)
 panel.orderFrontRegardless()
 NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(
-    600, handler, "timeout:", None, False)
+    600, handler, "timeout:", None, False
+)
 app.run()

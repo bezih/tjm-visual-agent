@@ -17,12 +17,15 @@ def test_first_ten_posts_from_recorded_api_response():
     assert "\n\nquia et suscipit\n" in posts[0].text
 
 
-@pytest.mark.parametrize("bad", [
-    {"id": 1, "title": "", "body": "x"},
-    {"id": "1", "title": "t", "body": "x"},
-    {"id": 1, "title": "t"},
-    {"id": 1, "title": "café", "body": "x"},
-])
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"id": 1, "title": "", "body": "x"},
+        {"id": "1", "title": "t", "body": "x"},
+        {"id": 1, "title": "t"},
+        {"id": 1, "title": "café", "body": "x"},
+    ],
+)
 def test_invalid_posts_rejected(bad):
     with pytest.raises(PostsError):
         parse_posts([bad], 1)

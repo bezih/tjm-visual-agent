@@ -69,8 +69,10 @@ def _engine(planner, grounder, **cfg):
     return eng
 
 
-RAW = ("The <element>TextEdit icon</element> is in the <area>desktop icon column</area>, "
-       "next to the <neighbor>Google Ads Editor icon</neighbor>.")
+RAW = (
+    "The <element>TextEdit icon</element> is in the <area>desktop icon column</area>, "
+    "next to the <neighbor>Google Ads Editor icon</neighbor>."
+)
 SCREEN = Image.new("RGB", (W, H), "white")
 
 
@@ -135,7 +137,10 @@ def test_parse_position_inference_dedupes_and_orders():
 
 
 def test_parse_grounder_output_formats():
-    assert (parse_grounder_output("[512, 300]").x, parse_grounder_output("[512, 300]").y) == (512, 300)
+    assert (parse_grounder_output("[512, 300]").x, parse_grounder_output("[512, 300]").y) == (
+        512,
+        300,
+    )
     assert parse_grounder_output("[100,100,200,300]").x == 150
     assert parse_grounder_output("[-1,-1]").refused
     assert parse_grounder_output("I cannot find it").refused
@@ -152,10 +157,13 @@ def test_adaptive_fast_path_accepts_verified_direct_hit():
 
 
 def test_adaptive_falls_back_to_full_search_when_check_fails():
-    verdicts = [CheckVerdict(analysis="", result="target_not_found"),
-                CheckVerdict(analysis="", result="is_target")]
+    verdicts = [
+        CheckVerdict(analysis="", result="target_not_found"),
+        CheckVerdict(analysis="", result="is_target"),
+    ]
     out = _engine(FakePlanner(RAW, verdicts), FakeGrounder(), mode="adaptive").search(
-        SCREEN, "TextEdit icon")
+        SCREEN, "TextEdit icon"
+    )
     assert out.status == "found"
     events = [e["event"] for e in out.events]
     assert events[:3] == ["fast_path_ground", "fast_path_check", "position_inference"]

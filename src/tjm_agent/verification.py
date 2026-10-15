@@ -28,6 +28,11 @@ def verify_saved(path: Path, expected: str) -> FileCheck:
         return FileCheck(True, "content matches exactly")
     if text.rstrip("\n") == expected:
         return FileCheck(False, "content matches except trailing newline(s)")
-    first = next((i for i, (a, b) in enumerate(zip(text, expected)) if a != b), min(len(text), len(expected)))
-    return FileCheck(False, f"content differs at char {first}: saved {text[first:first + 20]!r} "
-                            f"vs expected {expected[first:first + 20]!r}")
+    first = next(
+        (i for i, (a, b) in enumerate(zip(text, expected)) if a != b), min(len(text), len(expected))
+    )
+    return FileCheck(
+        False,
+        f"content differs at char {first}: saved {text[first : first + 20]!r} "
+        f"vs expected {expected[first : first + 20]!r}",
+    )

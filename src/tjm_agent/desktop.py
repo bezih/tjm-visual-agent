@@ -138,7 +138,9 @@ def frontmost_app() -> str | None:
 
 
 def is_running(app_name: str) -> bool:
-    return subprocess.run(["pgrep", "-x", app_name], check=False, capture_output=True).returncode == 0
+    return (
+        subprocess.run(["pgrep", "-x", app_name], check=False, capture_output=True).returncode == 0
+    )
 
 
 def wait_until(predicate, timeout: float, poll: float = 0.25) -> bool:
@@ -161,9 +163,12 @@ def _visible_window_info() -> list[dict]:
     import Quartz
 
     opts = Quartz.kCGWindowListOptionOnScreenOnly | Quartz.kCGWindowListExcludeDesktopElements
-    return [w for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
-            if 0 <= w.get("kCGWindowLayer", -1) <= _MAX_OBSTRUCTING_LAYER
-            and w.get("kCGWindowOwnerName") not in _SYSTEM_CHROME]
+    return [
+        w
+        for w in Quartz.CGWindowListCopyWindowInfo(opts, Quartz.kCGNullWindowID)
+        if 0 <= w.get("kCGWindowLayer", -1) <= _MAX_OBSTRUCTING_LAYER
+        and w.get("kCGWindowOwnerName") not in _SYSTEM_CHROME
+    ]
 
 
 def visible_windows() -> list[tuple[str, tuple[float, float, float, float]]]:
@@ -178,8 +183,9 @@ def visible_windows() -> list[tuple[str, tuple[float, float, float, float]]]:
 def _ax_windows(pid: int) -> list:
     from ApplicationServices import AXUIElementCopyAttributeValue, AXUIElementCreateApplication
 
-    _err, windows = AXUIElementCopyAttributeValue(AXUIElementCreateApplication(pid), "AXWindows",
-                                                  None)
+    _err, windows = AXUIElementCopyAttributeValue(
+        AXUIElementCreateApplication(pid), "AXWindows", None
+    )
     return list(windows or [])
 
 
@@ -234,8 +240,10 @@ def show_desktop() -> bool:
         time.sleep(0.3)
 
     for _ in range(2):
-        pids = {int(w["kCGWindowOwnerPID"]): str(w.get("kCGWindowOwnerName"))
-                for w in _visible_window_info()}
+        pids = {
+            int(w["kCGWindowOwnerPID"]): str(w.get("kCGWindowOwnerName"))
+            for w in _visible_window_info()
+        }
         for pid, owner in pids.items():
             if owner == "Finder":
                 _minimize_windows(pid)
@@ -266,12 +274,19 @@ def focused_field(app_name: str) -> tuple[str | None, str | None]:
     from AppKit import NSRunningApplication, NSWorkspace
     from ApplicationServices import AXUIElementCopyAttributeValue, AXUIElementCreateApplication
 
-    pid = next((int(a.processIdentifier()) for a in NSWorkspace.sharedWorkspace().runningApplications()
-                if a.localizedName() == app_name), None)
+    pid = next(
+        (
+            int(a.processIdentifier())
+            for a in NSWorkspace.sharedWorkspace().runningApplications()
+            if a.localizedName() == app_name
+        ),
+        None,
+    )
     if pid is None or NSRunningApplication.runningApplicationWithProcessIdentifier_(pid) is None:
         return None, None
-    _e, el = AXUIElementCopyAttributeValue(AXUIElementCreateApplication(pid), "AXFocusedUIElement",
-                                           None)
+    _e, el = AXUIElementCopyAttributeValue(
+        AXUIElementCreateApplication(pid), "AXFocusedUIElement", None
+    )
     if el is None:
         return None, None
     _e, role = AXUIElementCopyAttributeValue(el, "AXRole", None)
@@ -309,7 +324,8 @@ def dock_rect() -> tuple[float, float, float, float] | None:
     if not apps:
         return None
     _e, kids = AXUIElementCopyAttributeValue(
-        AXUIElementCreateApplication(apps[0].processIdentifier()), "AXChildren", None)
+        AXUIElementCreateApplication(apps[0].processIdentifier()), "AXChildren", None
+    )
     for kid in kids or []:
         _e, role = AXUIElementCopyAttributeValue(kid, "AXRole", None)
         if role != "AXList":

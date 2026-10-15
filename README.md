@@ -136,6 +136,7 @@ Optional settings in `.env` (see `.env.example`):
 ```bash
 uv run --locked pytest           # unit tests (no models, no desktop)
 uv run --locked ruff check .
+uv run --locked ruff format --check .   # style; `uvx pre-commit install` runs both on every commit
 ```
 
 The unit tests cover the geometry (Eq. 1, dilation, NMS, coordinate mapping), parsing of

@@ -35,8 +35,19 @@ RUN_PREFS: dict[str, tuple[str, str]] = {
 }
 
 # The only dialog buttons the workflow may press on its own.
-SAFE_BUTTONS = {"ok", "cancel", "close", "not now", "later", "continue", "new document",
-                "use .txt", "dismiss", "don't send", "done"}
+SAFE_BUTTONS = {
+    "ok",
+    "cancel",
+    "close",
+    "not now",
+    "later",
+    "continue",
+    "new document",
+    "use .txt",
+    "dismiss",
+    "don't send",
+    "done",
+}
 
 
 class WorkflowError(RuntimeError):
@@ -49,8 +60,7 @@ def safe_to_click(point, windows_at_capture, windows_now) -> bool:
     if windows_now != windows_at_capture:
         return False
     x, y = point
-    return not any(wx <= x <= wx + ww and wy <= y <= wy + wh
-                   for _, (wx, wy, ww, wh) in windows_now)
+    return not any(wx <= x <= wx + ww and wy <= y <= wy + wh for _, (wx, wy, ww, wh) in windows_now)
 
 
 @dataclass
@@ -75,14 +85,17 @@ class TextEditPrefs:
         self.backup_path = backup_path
 
     def _read(self, key: str) -> str | None:
-        r = subprocess.run(["defaults", "read", BUNDLE, key], capture_output=True, text=True,
-                           check=False)
+        r = subprocess.run(
+            ["defaults", "read", BUNDLE, key], capture_output=True, text=True, check=False
+        )
         return r.stdout.strip() if r.returncode == 0 else None
 
     def __enter__(self):
         if desktop.is_running(APP):
-            raise WorkflowError(f"{APP} is already running. Save your work and quit it first; "
-                                "the workflow never closes documents it did not create.")
+            raise WorkflowError(
+                f"{APP} is already running. Save your work and quit it first; "
+                "the workflow never closes documents it did not create."
+            )
         previous = {k: self._read(k) for k in RUN_PREFS}
         self.backup_path.parent.mkdir(parents=True, exist_ok=True)
         self.backup_path.write_text(json.dumps(previous, indent=2))
@@ -94,7 +107,9 @@ class TextEditPrefs:
     def __exit__(self, *exc):
         for key, value in self.previous.items():
             if value is None:
-                subprocess.run(["defaults", "delete", BUNDLE, key], capture_output=True, check=False)
+                subprocess.run(
+                    ["defaults", "delete", BUNDLE, key], capture_output=True, check=False
+                )
             else:
                 kind = RUN_PREFS[key][0]
                 if kind == "-bool":
@@ -107,8 +122,9 @@ class TextEditPrefs:
 
 
 class PostWorkflow:
-    def __init__(self, engine: ScreenSeekeR, icon_target: str, output_dir: Path, run_dir: Path,
-                 log=print):
+    def __init__(
+        self, engine: ScreenSeekeR, icon_target: str, output_dir: Path, run_dir: Path, log=print
+    ):
         self.engine = engine
         self.icon_target = icon_target
         self.output_dir = output_dir
@@ -128,37 +144,54 @@ class PostWorkflow:
             click_pt = desktop.point_for(*outcome.point_px, shot) if outcome.point_px else None
             name = f"post{post.id:02d}_launch{attempt}"
             trace.save(self.run_dir, name, shot.image, outcome, click_pt, title=name)
-            result.grounding.append({
-                "attempt": attempt, "status": outcome.status, "point_px": outcome.point_px,
-                "click_pt": click_pt, "seconds": round(outcome.seconds, 1),
-                "planner_calls": outcome.planner_calls, "grounder_calls": outcome.grounder_calls,
-            })
-            self.log(f"  grounding #{attempt}: {outcome.status} {click_pt or ''} "
-                     f"({outcome.seconds:.1f}s, planner {outcome.planner_calls}, "
-                     f"grounder {outcome.grounder_calls})")
+            result.grounding.append(
+                {
+                    "attempt": attempt,
+                    "status": outcome.status,
+                    "point_px": outcome.point_px,
+                    "click_pt": click_pt,
+                    "seconds": round(outcome.seconds, 1),
+                    "planner_calls": outcome.planner_calls,
+                    "grounder_calls": outcome.grounder_calls,
+                }
+            )
+            self.log(
+                f"  grounding #{attempt}: {outcome.status} {click_pt or ''} "
+                f"({outcome.seconds:.1f}s, planner {outcome.planner_calls}, "
+                f"grounder {outcome.grounder_calls})"
+            )
             if outcome.status == "found" and not desktop.on_desktop_surface(*click_pt):
                 # Defence in depth: a desktop icon cannot be in the Dock or the menu bar.
-                self.log(f"  hit {click_pt} is in the Dock/menu bar, not on the desktop; "
-                         "treating as not found")
+                self.log(
+                    f"  hit {click_pt} is in the Dock/menu bar, not on the desktop; "
+                    "treating as not found"
+                )
                 outcome.status = "not_found"
             if outcome.status != "found":
                 # Never click on uncertainty. Something may be covering the icon (an alert,
                 # a pop-up): triage it, dismiss it only via a safe button, then search again.
                 if attempt < max_attempts:
-                    self.intervene(result, step="looking for the TextEdit alias icon on the "
-                                   "desktop before double-clicking it",
-                                   expected="the desktop with the TextEdit alias icon visible")
+                    self.intervene(
+                        result,
+                        step="looking for the TextEdit alias icon on the "
+                        "desktop before double-clicking it",
+                        expected="the desktop with the TextEdit alias icon visible",
+                    )
                 continue
 
             if not safe_to_click(click_pt, windows_at_capture, desktop.visible_windows()):
                 self.log("  icon covered or screen changed since screenshot; not clicking")
                 if attempt < max_attempts:
-                    self.intervene(result, step="about to double-click the TextEdit alias icon "
-                                   "on the desktop", expected="the icon not covered by any window")
+                    self.intervene(
+                        result,
+                        step="about to double-click the TextEdit alias icon on the desktop",
+                        expected="the icon not covered by any window",
+                    )
                 continue
             desktop.double_click(*click_pt)
             launched = desktop.wait_until(
-                lambda: desktop.is_running(APP) and desktop.frontmost_app() == APP, timeout=12)
+                lambda: desktop.is_running(APP) and desktop.frontmost_app() == APP, timeout=12
+            )
             if launched:
                 return
             # Wrong click: something else opened (e.g. a folder). Close only what we opened.
@@ -166,8 +199,9 @@ class PostWorkflow:
             self.log(f"  launch failed: frontmost is {front!r}; recovering")
             if front == "Finder" and desktop.visible_windows():
                 desktop.hotkey("command", "w")
-        raise WorkflowError(f"could not launch {APP} from its desktop icon "
-                            f"after {max_attempts} attempts")
+        raise WorkflowError(
+            f"could not launch {APP} from its desktop icon after {max_attempts} attempts"
+        )
 
     def ensure_untitled_document(self, result: PostResult) -> None:
         def untitled() -> bool:
@@ -175,8 +209,11 @@ class PostWorkflow:
 
         if desktop.wait_until(untitled, timeout=6):
             return
-        self.intervene(result, step="waiting for TextEdit to show a new empty document",
-                       expected="a TextEdit window titled 'Untitled'")
+        self.intervene(
+            result,
+            step="waiting for TextEdit to show a new empty document",
+            expected="a TextEdit window titled 'Untitled'",
+        )
         if not desktop.wait_until(untitled, timeout=4):
             desktop.hotkey("command", "n")  # File ▸ New, then re-check
             if not desktop.wait_until(untitled, timeout=4):
@@ -251,12 +288,14 @@ class PostWorkflow:
             desktop.type_text(text)
             if desktop.wait_until(lambda: desktop.focused_field(APP)[1] == text, timeout=2):
                 return
-        raise WorkflowError(f"{what} field shows {desktop.focused_field(APP)[1]!r}, "
-                            f"expected {text!r}")
+        raise WorkflowError(
+            f"{what} field shows {desktop.focused_field(APP)[1]!r}, expected {text!r}"
+        )
 
     def _wait_for_text_field(self, what: str, timeout: float = 6) -> None:
-        if not desktop.wait_until(lambda: desktop.focused_field(APP)[0] == "AXTextField",
-                                  timeout=timeout):
+        if not desktop.wait_until(
+            lambda: desktop.focused_field(APP)[0] == "AXTextField", timeout=timeout
+        ):
             raise WorkflowError(f"{what} did not appear (focused: {desktop.focused_field(APP)})")
 
     def save_as(self, post: Post, result: PostResult) -> None:
@@ -268,15 +307,20 @@ class PostWorkflow:
 
         desktop.hotkey("command", "shift", "g")  # Go to Folder
         if not desktop.wait_until(
-                lambda: desktop.focused_field(APP)[0] == "AXTextField"
-                and desktop.focused_field(APP)[1] != post.filename, timeout=5):
+            lambda: (
+                desktop.focused_field(APP)[0] == "AXTextField"
+                and desktop.focused_field(APP)[1] != post.filename
+            ),
+            timeout=5,
+        ):
             raise WorkflowError("Go to Folder field did not appear")
         self._type_into_focused_field(str(self.output_dir), "Go to Folder")
         time.sleep(0.4)  # path completion list settles
         desktop.press("return")  # confirm folder; focus returns to the name field
 
-        if not desktop.wait_until(lambda: desktop.focused_field(APP)[1] == post.filename,
-                                  timeout=4):
+        if not desktop.wait_until(
+            lambda: desktop.focused_field(APP)[1] == post.filename, timeout=4
+        ):
             # Some macOS versions reset/blur the name field after navigation; re-enter it.
             self._wait_for_text_field("save sheet name field", timeout=2)
             self._type_into_focused_field(post.filename, "save name")
@@ -284,8 +328,10 @@ class PostWorkflow:
         if desktop.wait_until(target.exists, timeout=6):
             return
         intervened = self.intervene(
-            result, step=f"saving the document as {target}",
-            expected=f"the file {post.filename} to be saved and the sheet closed")
+            result,
+            step=f"saving the document as {target}",
+            expected=f"the file {post.filename} to be saved and the sheet closed",
+        )
         if intervened and desktop.wait_until(target.exists, timeout=4):
             return
         raise WorkflowError(f"{target} was not created by the save dialog")
@@ -298,8 +344,9 @@ class PostWorkflow:
         if desktop.wait_until(lambda: not desktop.is_running(APP), timeout=6):
             return
         try:
-            self.intervene(result, step="quitting TextEdit after saving",
-                           expected="TextEdit to quit")
+            self.intervene(
+                result, step="quitting TextEdit after saving", expected="TextEdit to quit"
+            )
         except WorkflowError as e:
             result.reason = (result.reason + "; " if result.reason else "") + str(e)
         if not desktop.wait_until(lambda: not desktop.is_running(APP), timeout=6):
@@ -308,6 +355,7 @@ class PostWorkflow:
 
 def write_summary(run_dir: Path, results: list[PostResult], extra: dict) -> Path:
     path = run_dir / "summary.json"
-    path.write_text(json.dumps({**extra, "posts": [asdict(r) for r in results]}, indent=2,
-                               default=str))
+    path.write_text(
+        json.dumps({**extra, "posts": [asdict(r) for r in results]}, indent=2, default=str)
+    )
     return path

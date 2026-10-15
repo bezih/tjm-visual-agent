@@ -94,8 +94,9 @@ class ClaudePlanner:
             {"type": "text", "text": text},
         ]
 
-    def _check_content(self, crop: Image.Image, instruction: str,
-                       context: Image.Image | None) -> list[dict]:
+    def _check_content(
+        self, crop: Image.Image, instruction: str, context: Image.Image | None
+    ) -> list[dict]:
         text = prompts.RESULT_CHECK.format(instruction=instruction)
         if context is None:
             return self._content(crop, text)
@@ -124,16 +125,18 @@ class ClaudePlanner:
         text = "".join(b.text for b in resp.content if b.type == "text")
         return parse_position_inference(text)
 
-    def check(self, marked_crop: Image.Image, instruction: str,
-              context: Image.Image | None = None) -> CheckVerdict:
+    def check(
+        self, marked_crop: Image.Image, instruction: str, context: Image.Image | None = None
+    ) -> CheckVerdict:
         t0 = time.monotonic()
         resp = self._client.messages.parse(
             model=self.model,
             max_tokens=4000,
             output_config={"effort": self.check_effort},
             output_format=CheckVerdict,
-            messages=[{"role": "user", "content": self._check_content(marked_crop, instruction,
-                                                                      context)}],
+            messages=[
+                {"role": "user", "content": self._check_content(marked_crop, instruction, context)}
+            ],
         )
         self.calls += 1
         self.seconds += time.monotonic() - t0
@@ -173,7 +176,9 @@ class DialogTriage(BaseModel):
 
 # ----------------------------------------------------------------------------- grounder
 
-_POINT = re.compile(r"\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*(?:,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*)?\]")
+_POINT = re.compile(
+    r"\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*(?:,\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*)?\]"
+)
 
 
 @dataclass(frozen=True)

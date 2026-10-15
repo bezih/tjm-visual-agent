@@ -33,8 +33,9 @@ class Planner(Protocol):
     calls: int
 
     def position_inference(self, image: Image.Image, instruction: str) -> PositionInference: ...
-    def check(self, marked_crop: Image.Image, instruction: str,
-              context: Image.Image | None = None) -> CheckVerdict: ...
+    def check(
+        self, marked_crop: Image.Image, instruction: str, context: Image.Image | None = None
+    ) -> CheckVerdict: ...
 
 
 class Grounder(Protocol):
@@ -118,14 +119,22 @@ class ScreenSeekeR:
     # ------------------------------------------------------------------ algorithm 1
 
     def _visual_search(self, instruction: str, viewport: Box, depth: int):
-        if depth >= self.cfg.max_depth or max(viewport.width, viewport.height) <= self.cfg.leaf_size:
+        if (
+            depth >= self.cfg.max_depth
+            or max(viewport.width, viewport.height) <= self.cfg.leaf_size
+        ):
             return self._leaf(instruction, viewport, depth)
 
         crop = self._crop(viewport)
         self._spend("planner")
         inference = self.planner.position_inference(crop, instruction)
-        self._log("position_inference", depth=depth, viewport=viewport.as_int(), raw=inference.raw,
-                  references=[(r.kind, r.text) for r in inference.references])
+        self._log(
+            "position_inference",
+            depth=depth,
+            viewport=viewport.as_int(),
+            raw=inference.raw,
+            references=[(r.kind, r.text) for r in inference.references],
+        )
         if inference.no_target:
             return None
 
@@ -137,8 +146,14 @@ class ScreenSeekeR:
             self._spend("grounder")
             gp = self.grounder.ground(crop, ref.text)
             pt = self._to_screenshot(gp, viewport)
-            self._log("ground_reference", depth=depth, kind=ref.kind, text=ref.text,
-                      raw=gp.raw, point_px=pt)
+            self._log(
+                "ground_reference",
+                depth=depth,
+                kind=ref.kind,
+                text=ref.text,
+                raw=gp.raw,
+                point_px=pt,
+            )
             if pt:
                 voters.append(Box.around(*pt, self.cfg.voter_size, self.cfg.voter_size))
         if not voters:
@@ -148,8 +163,11 @@ class ScreenSeekeR:
         candidates = [dilate(v, w, viewport, h) for v in voters]
         scores = score_candidates(candidates, voters, self.cfg.sigma)
         order = nms(candidates, scores, self.cfg.nms_iou)[: self.cfg.max_candidates]
-        self._log("candidates", depth=depth,
-                  patches=[(candidates[i].as_int(), round(scores[i], 3)) for i in order])
+        self._log(
+            "candidates",
+            depth=depth,
+            patches=[(candidates[i].as_int(), round(scores[i], 3)) for i in order],
+        )
 
         for i in order:
             hit = self._visual_search(instruction, candidates[i], depth + 1)
@@ -169,10 +187,16 @@ class ScreenSeekeR:
         w, h = patch_size(root, self.cfg.leaf_size, 1.0)
         viewport = dilate(Box.around(*pt, 1, 1), w, root, h)
         self._spend("planner")
-        verdict = self.planner.check(self._mark(self._crop(viewport), viewport, pt), instruction,
-                                     self._context(viewport, pt))
-        self._log("fast_path_check", point_px=pt, viewport=viewport.as_int(),
-                  result=verdict.result, analysis=verdict.analysis)
+        verdict = self.planner.check(
+            self._mark(self._crop(viewport), viewport, pt), instruction, self._context(viewport, pt)
+        )
+        self._log(
+            "fast_path_check",
+            point_px=pt,
+            viewport=viewport.as_int(),
+            result=verdict.result,
+            analysis=verdict.analysis,
+        )
         return (pt, viewport) if verdict.result == "is_target" else None
 
     def _leaf(self, instruction: str, viewport: Box, depth: int):
@@ -183,15 +207,28 @@ class ScreenSeekeR:
             self._spend("grounder")
             gp = self.grounder.ground(crop, instruction)
             pt = self._to_screenshot(gp, viewport)
-            self._log("ground_target", depth=depth, viewport=viewport.as_int(),
-                      instruction=instruction, raw=gp.raw, point_px=pt)
+            self._log(
+                "ground_target",
+                depth=depth,
+                viewport=viewport.as_int(),
+                instruction=instruction,
+                raw=gp.raw,
+                point_px=pt,
+            )
             if not pt:
                 return None
             self._spend("planner")
-            verdict = self.planner.check(self._mark(crop, viewport, pt), instruction,
-                                           self._context(viewport, pt))
-            self._log("check", depth=depth, point_px=pt, result=verdict.result,
-                      new_instruction=verdict.new_instruction, analysis=verdict.analysis)
+            verdict = self.planner.check(
+                self._mark(crop, viewport, pt), instruction, self._context(viewport, pt)
+            )
+            self._log(
+                "check",
+                depth=depth,
+                point_px=pt,
+                result=verdict.result,
+                new_instruction=verdict.new_instruction,
+                analysis=verdict.analysis,
+            )
             if verdict.result == "is_target":
                 return pt, viewport
             if verdict.result == "target_elsewhere" and verdict.new_instruction:
@@ -238,4 +275,3 @@ class ScreenSeekeR:
 
     def _log(self, event: str, **data) -> None:
         self._events.append({"event": event, "t": round(time.monotonic() - self._t0, 2), **data})
-
